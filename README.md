@@ -1,22 +1,59 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# اپلیکیشن سازنده و مدیریت فاکتور (Factii)
 
-# Run and deploy your AI Studio app
+برنامه‌ای حرفه‌ای و پیشرفته برای مدیریت، صدور و اشتراک‌گذاری فاکتورهای فروش و پیش‌فاکتور با پشتیبانی کامل از تاریخ شمسی و زبان فارسی.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/a6e53b75-db76-4a5a-ac53-262af66f283d
+## 🌟 ویژگی‌های کلیدی
 
-## Run Locally
+- **مدیریت و صدور فاکتور:**
+  - ثبت، ویرایش و مدیریت فاکتورها و پیش‌فاکتورهای فروش
+  - محاسبه خودکار جمع کل، تخفیف، مالیات و مبلغ قابل پرداخت
+  - ثبت اطلاعات مشتری، اقلام فاکتور، کد کالا و قیمت
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+- **پشتیبانی کامل از تاریخ شمسی:**
+  - تقویم و انتخاب‌گر تاریخ شمسی برای تمامی فاکتورها و گزارش‌ها
 
+- **خروجی PDF و چاپ:**
+  - تولید خروجی PDF استاندارد و شکیل جهت ارسال از طریق پیام‌رسان‌ها یا چاپ مستقیم
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
-7. If you have already published your app in AI Studio, please [request upload key reset](https://support.google.com/googleplay/android-developer/answer/9842756#zippy=%2Crequest-an-upload-key-reset) in Google Play Console.
+- **مدیریت مشتریان و کالاها:**
+  - ثبت و مدیریت دفترچه مشتریان برای دسترسی و انتخاب سریع
+  - تعریف کاتالوگ محصولات و خدمات با قابلیت قیمت‌گذاری
+
+- **گزارش‌گیری و آمار فروش:**
+  - مشاهده آمار فروش، فاکتورهای تسویه‌شده و معوقه به همراه نمودارها
+
+- **تنظیمات و شخصی‌سازی:**
+  - امکان درج مشخصات فروشگاه، لوگو، توضیحات پای فاکتور، مهر و امضا
+
+---
+
+## 🛠 تکنولوژی‌های استفاده‌شده
+
+- **زبان برنامه‌نویسی:** Kotlin
+- **رابط کاربری:** Jetpack Compose (Material Design 3)
+- **معماری:** MVVM + Clean Architecture
+- **پایگاه داده داخلی:** Room Database
+- **همگام‌سازی و آسنکرون:** Kotlin Coroutines & Flow
+- **سیستم ساخت:** Gradle (Kotlin DSL)
+
+---
+
+## 🚀 راهنمای اجرا و ساخت پروژه
+
+### پیش‌نیازها
+- [Android Studio](https://developer.android.com/studio) (نسخه‌های جدید Ladybug / Jellyfish)
+- JDK 17
+- Android SDK (حداقل API level 24)
+
+### مراحل اجرا
+1. سورس‌کد را دریافت کرده و پروژه را در **Android Studio** باز کنید (`Open`).
+2. اجازه دهید همگام‌سازی Gradle (`Gradle Sync`) به‌طور کامل انجام شود.
+3. پروژه را بر روی شبیه‌ساز (Emulator) یا گوشی هوشمند خود اجرا کنید (`Run`).
+
+---
+
+## 👤 توسعه‌دهنده
+
+طراحی و توسعه توسط **meisam**
