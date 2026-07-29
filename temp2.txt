@@ -1,0 +1,272 @@
+package com.example.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.model.Customer
+import com.example.data.model.InvoiceLineItem
+import com.example.data.model.Product
+import com.example.ui.InvoiceViewModel
+import com.example.util.Helper
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InvoiceEditorScreen(
+    viewModel: InvoiceViewModel,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val customers by viewModel.customers.collectAsStateWithLifecycle()
+    val products by viewModel.products.collectAsStateWithLifecycle()
+    val isRtl = viewModel.selectedLanguage == "fa"
+
+    val accentColor = Color(0xFF1A73E8)
+    val isDark = MaterialTheme.colorScheme.background.red < 0.5f
+    val cardBackground = if (isDark) Color(0xFF1E1E2E) else Color(0xFFFAFAFC)
+
+    var showProductDialog by remember { mutableStateOf(false) }
+    var customerDropdownExpanded by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = if (viewModel.editorInvoiceId == null) {
+                            if (isRtl) "صدور فاکتور جدید" else "New Invoice"
+                        } else {
+                            if (isRtl) "ویرایش فاکتور" else "Edit Invoice"
+                        },
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "برگشت")
+                    }
+                },
+                actions = {
+                    Button(
+                        onClick = {
+                            if (viewModel.editorCustomerId == null) {
+                                // Fallback select first customer if empty
+                                if (customers.isNotEmpty()) {
+                                    viewModel.editorCustomerId = customers.first().id
+                                }
+                            }
+                            viewModel.saveInvoice("Pending") {
+                                onNavigateBack()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.padding(end = 8.dp).testTag("save_invoice_button")
+                    ) {
+                        Text(text = if (isRtl) "ثبت نهایی" else "Save & Publish", color = Color.White, fontSize = 12.sp)
+                    }
+                }
+            )
+        },
+        modifier = modifier
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // --- Customer Selector ---
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = cardBackground),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = if (isRtl) "طرف حساب / خریدار" else "Client / Customer",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        // Selector Box
+                        val selectedCustomer = customers.find { it.id == viewModel.editorCustomerId }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .clickable { customerDropdownExpanded = true }
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = selectedCustomer?.let { "${it.name} - ${it.company}" }
+                                        ?: (if (isRtl) "انتخاب مشتری..." else "Select Customer..."),
+                                    color = if (selectedCustomer != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 14.sp
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "مشتری‌ها")
+                            }
+
+                            DropdownMenu(
+                                expanded = customerDropdownExpanded,
+                                onDismissRequest = { customerDropdownExpanded = false }
+                            ) {
+                                customers.forEach { cust ->
+                                    DropdownMenuItem(
+                                        text = { Text("${cust.name} (${cust.company})") },
+                                        onClick = {
+                                            viewModel.editorCustomerId = cust.id
+                                            customerDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Template Selector ---
+            item {
+                var templateDropdownExpanded by remember { mutableStateOf(false) }
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = cardBackground),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = if (isRtl) "قالب فاکتور" else "Invoice Template",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .clickable { templateDropdownExpanded = true }
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (viewModel.editorTemplate == "Nest") "Nest (صنایع چوبی)" else (if (isRtl) "عمومی" else "General"),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 14.sp
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                            }
+                            DropdownMenu(
+                                expanded = templateDropdownExpanded,
+                                onDismissRequest = { templateDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(if (isRtl) "عمومی" else "General") },
+                                    onClick = {
+                                        viewModel.editorTemplate = "General"
+                                        templateDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Nest (صنایع چوبی)") },
+                                    onClick = {
+                                        viewModel.editorTemplate = "Nest"
+                                        templateDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Invoice Info Form ---
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = cardBackground),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = if (isRtl) "اطلاعات کلی فاکتور" else "Invoice Specification",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        // Invoice number & Ref
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedTextField(
+                                value = viewModel.editorInvoiceNumber,
+                                onValueChange = { viewModel.editorInvoiceNumber = it },
+                                label = { Text(if (isRtl) "شماره فاکتور" else "Invoice Number") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = viewModel.editorReferenceNo,
+                                onValueChange = { viewModel.editorReferenceNo = it },
+                                label = { Text(if (isRtl) "کد مرجع" else "Ref Code") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+
+                        // Project and PO
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedTextField(
+                                value = viewModel.editorPoNumber,
+                                onValueChange = { viewModel.editorPoNumber = it },
+                                label = { Text(if (isRtl) "شماره سفارش (PO)" else "PO Number") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = viewModel.editorProjectNumber,
+                                onValueChange = { viewModel.editorProjectNumber = it },
+                                label = { Text(if (isRtl) "کد پروژه" else "Project Code") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+
+                        // Salesperson
+                        OutlinedTextField(
+                            value = viewModel.editorSalesperson,
+                            onValueChange = { viewModel.editorSalesperson = it },
+                            label = { Text(if (isRtl) "مسئول فروش / کارشناس" else "Sales Representative") },

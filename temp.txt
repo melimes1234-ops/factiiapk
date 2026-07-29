@@ -1,0 +1,91 @@
+                            value = viewModel.editorSalesperson,
+                            onValueChange = { viewModel.editorSalesperson = it },
+                            label = { Text(if (isRtl) "مسئول فروش / کارشناس" else "Sales Representative") },
+                           // --- Line Items Title ---
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isRtl) "اقلام فاکتور / کالا و خدمات" else "Line Items",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { showProductDialog = true }) {
+                            Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = if (isRtl) "درج از کالاها" else "Import Item", fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = { viewModel.addLineItem() },
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor.copy(alpha = 0.1f), contentColor = accentColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = if (isRtl) "افزودن ردیف" else "Add Row", fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+
+            if (viewModel.editorTemplate == "Nest") {
+                item {
+                    val nestProducts = listOf("صفحه کابینت خام", "ام دی اف خام", "ورق هایگلاس", "نوار لبه")
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = cardBackground),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(if (isRtl) "انتخاب سریع اقلام Nest:" else "Nest Quick Select:", fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                            nestProducts.forEach { prodName ->
+                                val isChecked = viewModel.editorLineItems.any { it.name == prodName }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            if (isChecked) {
+                                                val idx = viewModel.editorLineItems.indexOfFirst { it.name == prodName }
+                                                if (idx >= 0) viewModel.removeLineItem(idx)
+                                            } else {
+                                                viewModel.addLineItem(Product(name = prodName, unit = "عدد", price = 0.0))
+                                            }
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(checked = isChecked, onCheckedChange = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = prodName)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Line Item Rows ---                   Text(text = if (isRtl) "افزودن ردیف" else "Add Row", fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+
+            // --- Line Item Rows ---
+            itemsIndexed(viewModel.editorLineItems) { index, item ->
+                LineItemEditorRow(
+                    index = index,
+                    item = item,
+                    isRtl = isRtl,
+                    onUpdate = { updated -> viewModel.updateLineItem(index, updated) },
+                    onDelete = { viewModel.removeLineItem(index) },
+                    onDuplicate = { viewModel.duplicateLineItem(index) },
+                    cardBackground = cardBackground
+                )
+            }
+
+            // --- Taxes & Extra Financial Inputs ---
