@@ -1930,29 +1930,8 @@ fun getNestInvoiceHtmlContent(
             </table>
             """ else ""}
 
-            <!-- Table 3: Installation Services (خدمات نصب و اجرا) -->
-            ${if (installationItems.isNotEmpty()) """
-            <table>
-                <thead>
-                    <tr class="bg-gray text-center bold">
-                        $instHeaderCols
-                    </tr>
-                </thead>
-                <tbody>
-                    $instTrs
-                </tbody>
-                <tfoot>
-                    <tr class="bg-gray bold text-center">
-                        <td colspan="$instFooterColSpan" class="text-right" style="padding-right:8px;">جمع کل (ریال) / خدمات نصب و اجرا :</td>
-                        ${if (hasInstBranch) "<td>---</td>" else ""}
-                        <td>${formatNum(totalInstQty)}</td>
-                        <td colspan="2">${formatNum(totalInstPriceRial)}</td>
-                        $trailingTd
-                        <td style="font-size: 10px;">${formatNum(totalInstGrandRial)}</td>
-                    </tr>
-                </tfoot>
-            </table>
-            """ else ""}
+            <!-- Table 3: Installation Services Removed per user request -->
+            ${""}
 
             <!-- Calculation Totals Box (Rows 26-29) -->
             <table style="margin-top: 3px;">
@@ -1968,12 +1947,7 @@ fun getNestInvoiceHtmlContent(
                     <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalAccGrandRial)}</td>
                 </tr>
                 """ else ""}
-                ${if (installationItems.isNotEmpty() && (woodItems.isNotEmpty() || accessoryItems.isNotEmpty())) """
-                <tr>
-                    <td class="bold" style="width:70%;">جمع کل خدمات نصب و اجرا ( ریال ) :</td>
-                    <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalInstGrandRial)}</td>
-                </tr>
-                """ else ""}
+                <!-- Installation total removed -->
                 <tr>
                     <td class="bold" style="width:70%; font-size: 10.5px;">تخفیف ( ریال ) :</td>
                     <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalDiscountRial)}</td>
@@ -2036,10 +2010,6 @@ fun getNestInvoiceHtmlContent(
                     <td class="text-center">${invoice.paymentDetails}</td>
                 </tr>
                 """ else ""}
-                <tr>
-                    <td class="bold">شرایط ارسال :</td>
-                    <td class="text-center">پس از تسویه کامل</td>
-                </tr>
             </table>
 
             <!-- Terms & Bank Details -->

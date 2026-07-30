@@ -22,7 +22,7 @@ data class AppSettings(
     val useJalaliCalendar: Boolean = true,
     val defaultCurrency: String = "تومان",
     val defaultLanguage: String = "fa", // "fa" or "en"
-    val themeMode: String = "system", // "system", "light", "dark"
+    val themeMode: String = "light", // "system", "light", "dark"
     val primaryColorHex: String = "#FF1A73E8", // Premium Indigo/Blue
     val autoIncrementNumber: Int = 1001,
     val invoiceNumberPrefix: String = "MK",

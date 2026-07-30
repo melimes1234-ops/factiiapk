@@ -95,7 +95,7 @@ fun SettingsScreen(
     var useJalaliCalendar by remember { mutableStateOf(true) }
     var defaultCurrency by remember { mutableStateOf("تومان") }
     var defaultLanguage by remember { mutableStateOf("fa") }
-    var themeMode by remember { mutableStateOf("system") }
+    var themeMode by remember { mutableStateOf("light") }
     var invoiceNumberPrefix by remember { mutableStateOf("MK") }
     var autoIncrementNumber by remember { mutableStateOf("1001") }
     var defaultColorCodes by remember { mutableStateOf("N1, N2, N3, C1, C2, W1, W2, G1, G2") }

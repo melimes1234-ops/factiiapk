@@ -88,7 +88,7 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
     var useJalaliCalendar by mutableStateOf(true)
     var usePersianDigits by mutableStateOf(true)
     var selectedCurrency by mutableStateOf("تومان")
-    var selectedThemeMode by mutableStateOf("system") // "system", "light", "dark"
+    var selectedThemeMode by mutableStateOf("light") // "system", "light", "dark"
 
     init {
         // Observe settings flow to update local states dynamically
@@ -212,7 +212,7 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
             editorDiscountType = "Percent"
             editorDiscountRate = 0.0
             editorDiscountAmount = 0.0
-            editorTaxRate = 10.0 // Standard VAT in Iran (10%)
+            editorTaxRate = 0.0 // Standard VAT in Iran (10%) but set to 0.0 by default
             editorTaxType = "Exclusive"
             editorAdvancePayment = 0.0
             editorStatus = "Pending"
@@ -743,6 +743,15 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
         }
     }
 
+    fun toggleThemeMode() {
+        viewModelScope.launch {
+            val s = repository.settings.first() ?: com.example.data.model.AppSettings()
+            val newMode = if (selectedThemeMode == "light" || selectedThemeMode == "system") "dark" else "light"
+            selectedThemeMode = newMode
+            repository.saveSettings(s.copy(themeMode = newMode))
+        }
+    }
+
     // --- Dashboard Analytics Calculations ---
     val dashboardStats = combine(
         invoices,
@@ -1112,3 +1121,4 @@ class InvoiceViewModelFactory(private val repository: InvoiceRepository) : ViewM
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+// add to bottom? No, inside the class
