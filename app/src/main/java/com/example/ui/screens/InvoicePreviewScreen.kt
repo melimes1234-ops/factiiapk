@@ -1502,6 +1502,7 @@ fun getNestInvoiceHtmlContent(
     val woodItems = items.filter { it.categoryType == "Wood" || it.categoryType == "چوب پلاست" || it.categoryType.isEmpty() }
     val accessoryItems = items.filter { it.categoryType == "Accessory" || it.categoryType == "پیچ و کلیپس" }
     val installationItems = items.filter { it.categoryType == "Installation" || it.categoryType == "نصب" }
+    val isInstInvoice = invoice.invoiceType.contains("نصب") || invoice.invoiceType.contains("اجرا") || (installationItems.isNotEmpty() && woodItems.isEmpty() && accessoryItems.isEmpty())
 
     val hasTax = invoice.taxRate > 0.0
     val taxRateFactor = if (hasTax) 0.07 else 0.0
@@ -1930,8 +1931,29 @@ fun getNestInvoiceHtmlContent(
             </table>
             """ else ""}
 
-            <!-- Table 3: Installation Services Removed per user request -->
-            ${""}
+            <!-- Table 3: Installation Services (خدمات نصب و اجرا) -->
+            ${if (installationItems.isNotEmpty()) """
+            <table>
+                <thead>
+                    <tr class="bg-gray text-center bold">
+                        $instHeaderCols
+                    </tr>
+                </thead>
+                <tbody>
+                    $instTrs
+                </tbody>
+                <tfoot>
+                    <tr class="bg-gray bold text-center">
+                        <td colspan="$instFooterColSpan" class="text-right" style="padding-right:8px;">جمع کل (ریال) / خدمات نصب و اجرا :</td>
+                        ${if (hasInstBranch) "<td>---</td>" else ""}
+                        <td>${formatNum(totalInstQty)}</td>
+                        <td colspan="2">${formatNum(totalInstPriceRial)}</td>
+                        $trailingTd
+                        <td style="font-size: 10px;">${formatNum(totalInstGrandRial)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+            """ else ""}
 
             <!-- Calculation Totals Box (Rows 26-29) -->
             <table style="margin-top: 3px;">
@@ -1947,7 +1969,12 @@ fun getNestInvoiceHtmlContent(
                     <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalAccGrandRial)}</td>
                 </tr>
                 """ else ""}
-                <!-- Installation total removed -->
+                ${if (installationItems.isNotEmpty() && (woodItems.isNotEmpty() || accessoryItems.isNotEmpty())) """
+                <tr>
+                    <td class="bold" style="width:70%;">جمع کل خدمات نصب و اجرا ( ریال ) :</td>
+                    <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalInstGrandRial)}</td>
+                </tr>
+                """ else ""}
                 <tr>
                     <td class="bold" style="width:70%; font-size: 10.5px;">تخفیف ( ریال ) :</td>
                     <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalDiscountRial)}</td>
@@ -2010,6 +2037,12 @@ fun getNestInvoiceHtmlContent(
                     <td class="text-center">${invoice.paymentDetails}</td>
                 </tr>
                 """ else ""}
+                ${if (!isInstInvoice) """
+                <tr>
+                    <td class="bold">شرایط ارسال :</td>
+                    <td class="text-center">پس از تسویه کامل</td>
+                </tr>
+                """ else ""}
             </table>
 
             <!-- Terms & Bank Details -->
@@ -2020,7 +2053,7 @@ fun getNestInvoiceHtmlContent(
                         $dynamicTermsHtml
                     </td>
                     <td style="width:42%; vertical-align:top; padding: 4px; font-size: 8.8px;">
-                        <div class="bold" style="margin-bottom: 4px;">۱۰- لطفا مبلغ فاکتور را به حساب شماره :</div>
+                        <div class="bold" style="margin-bottom: 4px;">اطلاعات جهت پرداخت :</div>
                         <div style="background-color:#f9fafb; padding:4px; border:1px dashed #000; text-align:center;">
                             <div dir="ltr" class="bold" style="font-size:10px;">${bankAccount?.shabaNumber ?: "IR160110000000200021893006"}</div>
                             <div style="margin-top:2px;">شماره حساب : <span dir="ltr" class="bold">${bankAccount?.accountNumber ?: "0200021893006"}</span></div>

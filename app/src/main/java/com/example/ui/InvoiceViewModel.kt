@@ -212,7 +212,7 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
             editorDiscountType = "Percent"
             editorDiscountRate = 0.0
             editorDiscountAmount = 0.0
-            editorTaxRate = 0.0 // Standard VAT in Iran (10%) but set to 0.0 by default
+            editorTaxRate = 10.0 // Standard VAT in Iran (10%)
             editorTaxType = "Exclusive"
             editorAdvancePayment = 0.0
             editorStatus = "Pending"
@@ -745,10 +745,11 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
 
     fun toggleThemeMode() {
         viewModelScope.launch {
-            val s = repository.settings.first() ?: com.example.data.model.AppSettings()
-            val newMode = if (selectedThemeMode == "light" || selectedThemeMode == "system") "dark" else "light"
+            val currentSettings = settings.value ?: AppSettings()
+            val newMode = if (selectedThemeMode == "dark") "light" else "dark"
+            val updated = currentSettings.copy(themeMode = newMode)
+            repository.saveSettings(updated)
             selectedThemeMode = newMode
-            repository.saveSettings(s.copy(themeMode = newMode))
         }
     }
 
@@ -1121,4 +1122,3 @@ class InvoiceViewModelFactory(private val repository: InvoiceRepository) : ViewM
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-// add to bottom? No, inside the class

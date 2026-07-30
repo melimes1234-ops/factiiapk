@@ -666,7 +666,7 @@ object CsvImportExportUtil {
                             useJalaliCalendar = o.optBoolean("useJalaliCalendar", true),
                             defaultCurrency = o.optString("defaultCurrency", "تومان"),
                             defaultLanguage = o.optString("defaultLanguage", "fa"),
-                            themeMode = o.optString("themeMode", "light"),
+                            themeMode = o.optString("themeMode", "system"),
                             primaryColorHex = o.optString("primaryColorHex", "#FF1A73E8"),
                             autoIncrementNumber = o.optInt("autoIncrementNumber", 1001)
                         )

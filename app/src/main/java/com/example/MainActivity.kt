@@ -66,9 +66,9 @@ class MainActivity : ComponentActivity() {
 
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 val darkTheme = when (viewModel.selectedThemeMode) {
-                    "light" -> false
                     "dark" -> true
-                    else -> isSystemInDarkTheme()
+                    "system" -> isSystemInDarkTheme()
+                    else -> false
                 }
                 LaunchedEffect(darkTheme) {
                     enableEdgeToEdge(

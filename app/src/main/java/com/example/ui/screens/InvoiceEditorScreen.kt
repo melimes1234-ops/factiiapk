@@ -128,11 +128,14 @@ fun InvoiceEditorScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.toggleThemeMode() }) {
-                        val isDark = viewModel.selectedThemeMode == "dark"
+                    IconButton(
+                        onClick = { viewModel.toggleThemeMode() },
+                        modifier = Modifier.testTag("theme_toggle_button")
+                    ) {
                         Icon(
-                            imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Toggle Theme"
+                            imageVector = if (viewModel.selectedThemeMode == "dark") Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = if (viewModel.selectedThemeMode == "dark") "حالت روشن" else "حالت تاریک",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Button(
@@ -330,6 +333,7 @@ fun InvoiceEditorScreen(
                         ) {
                             val isPre = viewModel.editorInvoiceType == "پیش‌فاکتور"
                             val isSales = viewModel.editorInvoiceType == "فاکتور فروش" || viewModel.editorInvoiceType == "فاکتور"
+                            val isInst = viewModel.editorInvoiceType == "فاکتور نصب و اجرا" || viewModel.editorInvoiceType == "نصب و اجرا"
 
                             FilterChip(
                                 selected = isPre,
@@ -349,6 +353,16 @@ fun InvoiceEditorScreen(
                                     if (isSales) Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
                                 },
                                 modifier = Modifier.weight(1f).testTag("invoice_type_salesinvoice")
+                            )
+
+                            FilterChip(
+                                selected = isInst,
+                                onClick = { viewModel.editorInvoiceType = "فاکتور نصب و اجرا" },
+                                label = { Text(if (isRtl) "نصب و اجرا" else "Installation", fontSize = 11.sp) },
+                                leadingIcon = {
+                                    if (isInst) Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                },
+                                modifier = Modifier.weight(1f).testTag("invoice_type_installation")
                             )
                         }
                     }
@@ -638,7 +652,7 @@ fun InvoiceEditorScreen(
                                 )
                                 if (!isFinancialExpanded) {
                                     val summaryText = buildString {
-                                        if (viewModel.editorTaxRate > 0) append("ارزش افزوده: ${Helper.formatDouble(viewModel.editorTaxRate, isRtl)}٪ | ")
+                                        if (viewModel.editorTaxRate > 0) append("ارزش افزوده: ۱۰٪ | ")
                                         if (viewModel.editorDiscountType == "Percent" && viewModel.editorDiscountRate > 0) append("تخفیف: ${viewModel.editorDiscountRate}%")
                                         else if (viewModel.editorDiscountAmount > 0) append("تخفیف: ${Helper.formatCurrency(viewModel.editorDiscountAmount, "تومان", true)}")
                                         else append("بدون تخفیف")
