@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -530,29 +531,48 @@ fun InvoiceEditorScreen(
                     Text(
                         text = if (isRtl) "اقلام فاکتور / کالا و خدمات" else "Line Items",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { showProductDialog = true }) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = { showProductDialog = true },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.defaultMinSize(minHeight = 36.dp).testTag("import_product_button")
+                        ) {
                             Icon(Icons.Default.AddShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = if (isRtl) "درج از کالاها" else "Import Item", fontSize = 11.sp)
+                            Text(
+                                text = if (isRtl) "درج از کالاها" else "Import Item",
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
                         Button(
                             onClick = { viewModel.addLineItem() },
-                            colors = ButtonDefaults.buttonColors(containerColor = accentColor.copy(alpha = 0.1f), contentColor = accentColor),
-                            shape = RoundedCornerShape(8.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor.copy(alpha = 0.12f), contentColor = accentColor),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.defaultMinSize(minHeight = 36.dp).testTag("add_line_item_button")
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = if (isRtl) "افزودن ردیف" else "Add Row", fontSize = 11.sp)
+                            Text(
+                                text = if (isRtl) "افزودن ردیف" else "Add Row",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
             }
-
-
 
             itemsIndexed(viewModel.editorLineItems) { index, item ->
                 LineItemEditorRow(
@@ -568,6 +588,32 @@ fun InvoiceEditorScreen(
                     onSaveProductPriceToDb = { updatedProd -> viewModel.saveProduct(updatedProd) },
                     cardBackground = cardBackground
                 )
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = { viewModel.addLineItem() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .testTag("add_new_row_bottom_button"),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.5.dp, accentColor.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = accentColor.copy(alpha = 0.08f),
+                        contentColor = accentColor
+                    )
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isRtl) "+ افزودن ردیف جدید به فاکتور" else "+ Add New Row",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             // --- Financial Inputs (Expandable Accordion) ---
@@ -954,6 +1000,16 @@ fun InvoiceEditorScreen(
                             label = if (isRtl) "مالیات بر ارزش افزوده" else "Value-Added Tax",
                             value = Helper.formatCurrency(viewModel.getDraftTaxVal(), viewModel.selectedCurrency, viewModel.usePersianDigits)
                         )
+                        val totalWoodWeight = viewModel.editorLineItems.filter { it.categoryType == "Wood" || it.categoryType == "چوب پلاست" }.sumOf { (if (it.quantity > 0) it.quantity else it.branchCount * 3.0) * it.weight }
+                        val totalAccWeight = viewModel.editorLineItems.filter { it.categoryType == "Accessory" || it.categoryType == "پیچ و کلیپس" }.sumOf { it.quantity * it.weight }
+                        val totalInvWeight = totalWoodWeight + totalAccWeight
+                        if (totalInvWeight > 0.0) {
+                            SummaryRow(
+                                label = if (isRtl) "مجموع وزن تقریبی اقلام" else "Total Est. Weight",
+                                value = if (totalInvWeight >= 1000) "${Helper.formatDouble(totalInvWeight / 1000.0, viewModel.usePersianDigits)} تن (${Helper.formatDouble(totalInvWeight, viewModel.usePersianDigits)} kg)"
+                                        else "${Helper.formatDouble(totalInvWeight, viewModel.usePersianDigits)} کیلوگرم"
+                            )
+                        }
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                         SummaryRow(
                             label = if (isRtl) "جمع کل فاکتور" else "Grand Total",
@@ -1679,6 +1735,7 @@ fun LineItemEditorRow(
                                     }
                                     val dbProd = allProducts.find { (it.name.isNotBlank() && it.name.trim().equals(preset.name.trim(), ignoreCase = true)) || (it.sku.isNotBlank() && it.sku.trim().equals(preset.sku.trim(), ignoreCase = true)) }
                                     val autoPrice = if (dbProd != null && dbProd.price > 0) dbProd.price else (if (preset.defaultPrice > 0) preset.defaultPrice else item.unitPrice)
+                                    val autoWeight = if (dbProd != null && dbProd.weight > 0) dbProd.weight else (if (preset.defaultWeight > 0) preset.defaultWeight else item.weight)
                                     onUpdate(
                                         item.copy(
                                             name = preset.name,
@@ -1687,13 +1744,19 @@ fun LineItemEditorRow(
                                             branchCount = if (b > 0) b else item.branchCount,
                                             quantity = if (q > 0) q else item.quantity,
                                             unitPrice = if (autoPrice > 0) autoPrice else item.unitPrice,
+                                            weight = if (autoWeight > 0) autoWeight else item.weight,
                                             unit = "متر طول"
                                         )
                                     )
                                 } else {
                                     val dbProd = allProducts.find { (it.name.isNotBlank() && it.name.trim().equals(inputName.trim(), ignoreCase = true)) || (it.sku.isNotBlank() && it.sku.trim().equals(inputName.trim(), ignoreCase = true)) }
                                     if (dbProd != null) {
-                                        onUpdate(item.copy(name = dbProd.name, sku = dbProd.sku, unitPrice = if (dbProd.price > 0) dbProd.price else item.unitPrice))
+                                        onUpdate(item.copy(
+                                            name = dbProd.name,
+                                            sku = dbProd.sku,
+                                            unitPrice = if (dbProd.price > 0) dbProd.price else item.unitPrice,
+                                            weight = if (dbProd.weight > 0) dbProd.weight else item.weight
+                                        ))
                                     } else {
                                         onUpdate(item.copy(name = inputName))
                                     }
@@ -1719,6 +1782,7 @@ fun LineItemEditorRow(
                                     }
                                     val dbProd = allProducts.find { (it.name.isNotBlank() && it.name.trim().equals(preset.name.trim(), ignoreCase = true)) || (it.sku.isNotBlank() && it.sku.trim().equals(preset.sku.trim(), ignoreCase = true)) }
                                     val autoPrice = if (dbProd != null && dbProd.price > 0) dbProd.price else (if (preset.defaultPrice > 0) preset.defaultPrice else item.unitPrice)
+                                    val autoWeight = if (dbProd != null && dbProd.weight > 0) dbProd.weight else (if (preset.defaultWeight > 0) preset.defaultWeight else item.weight)
                                     onUpdate(
                                         item.copy(
                                             name = preset.name,
@@ -1727,13 +1791,19 @@ fun LineItemEditorRow(
                                             branchCount = if (b > 0) b else item.branchCount,
                                             quantity = if (q > 0) q else item.quantity,
                                             unitPrice = if (autoPrice > 0) autoPrice else item.unitPrice,
+                                            weight = if (autoWeight > 0) autoWeight else item.weight,
                                             unit = "متر طول"
                                         )
                                     )
                                 } else {
                                     val dbProd = allProducts.find { (it.sku.isNotBlank() && it.sku.trim().equals(inputSku.trim(), ignoreCase = true)) }
                                     if (dbProd != null) {
-                                        onUpdate(item.copy(name = dbProd.name, sku = dbProd.sku, unitPrice = if (dbProd.price > 0) dbProd.price else item.unitPrice))
+                                        onUpdate(item.copy(
+                                            name = dbProd.name,
+                                            sku = dbProd.sku,
+                                            unitPrice = if (dbProd.price > 0) dbProd.price else item.unitPrice,
+                                            weight = if (dbProd.weight > 0) dbProd.weight else item.weight
+                                        ))
                                     } else {
                                         onUpdate(item.copy(sku = inputSku))
                                     }
@@ -1858,7 +1928,7 @@ fun LineItemEditorRow(
                                 }
                             },
                             textStyle = TextStyle(fontSize = 11.sp),
-                            label = { Text(if (isRtl) "متراژ اولیه (m²)" else "Area (m²)", fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            label = { Text(if (isRtl) "متراژ اولیه" else "Initial Area", fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             placeholder = { Text("100", fontSize = 10.sp) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1976,26 +2046,29 @@ fun LineItemEditorRow(
                     }
                 }
 
-                // Unit Price & Unit Picker Row
+                // Unit Price, Unit Picker & Weight Row
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AccordionPickerField(
-                        value = item.unit.ifEmpty { if (isWood) "متر طول" else "قطعه" },
-                        onValueChange = { newUnit ->
-                            onUpdate(item.copy(unit = newUnit))
-                        },
-                        label = if (isRtl) "واحد اندازه‌گیری" else "Measurement Unit",
-                        placeholder = "متر طول / قطعه...",
-                        options = standardUnits,
-                        isRtl = isRtl,
-                        modifier = Modifier.weight(1f).testTag("line_item_unit_input_$index")
-                    )
+                    if (!isWood) {
+                        AccordionPickerField(
+                            value = item.unit.ifEmpty { "قطعه" },
+                            onValueChange = { newUnit ->
+                                onUpdate(item.copy(unit = newUnit))
+                            },
+                            label = if (isRtl) "واحد اندازه‌گیری" else "Measurement Unit",
+                            placeholder = "قطعه / رول...",
+                            options = standardUnits,
+                            isRtl = isRtl,
+                            modifier = Modifier.weight(1f).testTag("line_item_unit_input_$index")
+                        )
+                    }
                     SelectOnFocusTextField(
                         value = Helper.formatWithCommas(item.unitPrice, false),
                         onValueChange = { input ->
                             val parsed = Helper.parseFormattedToDouble(input)
                             onUpdate(item.copy(unitPrice = parsed))
                         },
-                        label = { Text(if (isRtl) "قیمت واحد (تومان)" else "Unit Price (IRT)") },
+                        textStyle = TextStyle(fontSize = 11.sp),
+                        label = { Text(if (isRtl) "قیمت واحد (تومان)" else "Unit Price (IRT)", fontSize = 10.sp, maxLines = 1) },
                         supportingText = {
                             if (item.unitPrice > 0) {
                                 Text(
@@ -2006,7 +2079,48 @@ fun LineItemEditorRow(
                                 )
                             }
                         },
-                        modifier = Modifier.weight(1.3f).testTag("line_item_price_input_$index"),
+                        modifier = Modifier.weight(1.2f).testTag("line_item_price_input_$index"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                    SelectOnFocusTextField(
+                        value = if (item.weight > 0) Helper.formatDouble(item.weight, false) else "",
+                        onValueChange = { input ->
+                            val parsedWeight = input.toDoubleOrNull() ?: 0.0
+                            onUpdate(item.copy(weight = parsedWeight))
+                        },
+                        textStyle = TextStyle(fontSize = 11.sp),
+                        label = {
+                            Text(
+                                text = if (isRtl) "وزن" else "Weight",
+                                fontSize = 10.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        placeholder = { Text(if (isWood) "2.61" else "0.0", fontSize = 10.sp) },
+                        supportingText = {
+                            if (item.weight > 0) {
+                                val meters = if (item.quantity > 0) item.quantity else item.branchCount * 3.0
+                                val itemTotW = if (isWood) meters * item.weight else item.quantity * item.weight
+                                val detailStr = if (isWood) {
+                                    if (isRtl) "کل: ${Helper.formatDouble(itemTotW, false)} کیلوگرم (${Helper.formatDouble(meters, false)} متر × ${Helper.formatDouble(item.weight, false)})"
+                                    else "Total: ${Helper.formatDouble(itemTotW, false)} kg (${Helper.formatDouble(meters, false)} m × ${Helper.formatDouble(item.weight, false)})"
+                                } else {
+                                    if (isRtl) "مجموع: ${Helper.formatDouble(itemTotW, false)} کیلوگرم"
+                                    else "Total: ${Helper.formatDouble(itemTotW, false)} kg"
+                                }
+                                Text(
+                                    text = detailStr,
+                                    fontSize = 9.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1.1f).testTag("line_item_weight_input_$index"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true
                     )
@@ -2060,6 +2174,60 @@ fun LineItemEditorRow(
                                         onClick = {
                                             onSaveProductPriceToDb.invoke(matchedDbProduct.copy(price = item.unitPrice))
                                             showPriceUpdatePrompt = false
+                                        },
+                                        modifier = Modifier.height(28.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    ) {
+                                        Text(if (isRtl) "بله، ثبت در انبار" else "Yes, Save in Warehouse", fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (matchedDbProduct != null && item.weight > 0 && matchedDbProduct.weight != item.weight && onSaveProductPriceToDb != null) {
+                    var showWeightUpdatePrompt by remember(item.weight, matchedDbProduct.id) { mutableStateOf(true) }
+                    if (showWeightUpdatePrompt) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text(
+                                    text = if (isRtl) "تغییر وزن کالا / پروفیل" else "Manual Weight Modification",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = if (isRtl) "وزن قبلی انبار: ${matchedDbProduct.weight} kg  ➜  وزن جدید فاکتور: ${item.weight} kg\nآیا می‌خواهید این وزن جدید به عنوان وزن پیش‌فرض کالا «${matchedDbProduct.name}» در انبار ذخیره شود؟"
+                                           else "DB Weight: ${matchedDbProduct.weight} kg  ➜  New Weight: ${item.weight} kg\nSave as default weight for product in warehouse?",
+                                    fontSize = 9.5.sp,
+                                    lineHeight = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    TextButton(
+                                        onClick = { showWeightUpdatePrompt = false },
+                                        modifier = Modifier.height(28.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Text(if (isRtl) "خیر (انصراف)" else "No", fontSize = 10.sp)
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Button(
+                                        onClick = {
+                                            onSaveProductPriceToDb.invoke(matchedDbProduct.copy(weight = item.weight))
+                                            showWeightUpdatePrompt = false
                                         },
                                         modifier = Modifier.height(28.dp),
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),

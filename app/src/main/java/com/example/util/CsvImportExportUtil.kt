@@ -46,7 +46,7 @@ object CsvImportExportUtil {
     fun exportProductsToCsv(context: Context, products: List<Product>) {
         val sb = StringBuilder()
         sb.append("\uFEFF") // UTF-8 BOM for Microsoft Excel
-        sb.append("SKU,Name,CategoryType,ColorCode,SurfaceTreatment,BranchCount,Unit,Price,Cost,Stock,Description\n")
+        sb.append("SKU,Name,CategoryType,ColorCode,SurfaceTreatment,BranchCount,Weight,Unit,Price,Cost,Stock,Description\n")
 
         products.forEach { p ->
             sb.append("${escapeCsv(p.sku)},")
@@ -55,6 +55,7 @@ object CsvImportExportUtil {
             sb.append("${escapeCsv(p.colorCode)},")
             sb.append("${escapeCsv(p.surfaceTreatment)},")
             sb.append("${p.branchCount},")
+            sb.append("${p.weight},")
             sb.append("${escapeCsv(p.unit)},")
             sb.append("${p.price},")
             sb.append("${p.cost},")
@@ -73,10 +74,10 @@ object CsvImportExportUtil {
     fun generateSampleProductsCsv(context: Context) {
         val sb = StringBuilder()
         sb.append("\uFEFF")
-        sb.append("SKU,Name,CategoryType,ColorCode,SurfaceTreatment,BranchCount,Unit,Price,Cost,Stock,Description\n")
-        sb.append("FD142,پروفیل چوب پلاست دک ONCE,Wood,N3,BR,40.0,متر طول,320000.0,210000.0,500.0,پروفیل مخصوص کفپوش outdoor\n")
-        sb.append("ST140,پروفیل چوب پلاست نما ST,Wood,N1,Emboss,25.0,متر طول,285000.0,180000.0,300.0,پروفیل مخصوص نمای ساختمان\n")
-        sb.append("CLP-T,کلیپس T شکل فلزی (بست نصب),Accessory,-,Galvanized,0.0,عدد,12000.0,7000.0,5000.0,کلیپس نصب زیرسازی\n")
+        sb.append("SKU,Name,CategoryType,ColorCode,SurfaceTreatment,BranchCount,Weight,Unit,Price,Cost,Stock,Description\n")
+        sb.append("FD142,پروفیل چوب پلاست دک ONCE,Wood,N3,BR,40.0,2.61,متر طول,320000.0,210000.0,500.0,پروفیل مخصوص کفپوش outdoor\n")
+        sb.append("ST140,پروفیل چوب پلاست نما ST,Wood,N1,Emboss,25.0,2.10,متر طول,285000.0,180000.0,300.0,پروفیل مخصوص نمای ساختمان\n")
+        sb.append("HCL,کلیپس T شکل فلزی (بست نصب),Accessory,-,Galvanized,0.0,0.015,عدد,12000.0,7000.0,5000.0,کلیپس نصب زیرسازی\n")
 
         val cacheDir = File(context.cacheDir, "exports")
         cacheDir.mkdirs()
@@ -104,11 +105,29 @@ object CsvImportExportUtil {
                 val colorCode = parts.getOrNull(3) ?: ""
                 val surfaceTreatment = parts.getOrNull(4) ?: ""
                 val branchCount = parts.getOrNull(5)?.toDoubleOrNull() ?: 0.0
-                val unit = parts.getOrNull(6)?.ifEmpty { "عدد" } ?: "عدد"
-                val price = parts.getOrNull(7)?.toDoubleOrNull() ?: 0.0
-                val cost = parts.getOrNull(8)?.toDoubleOrNull() ?: 0.0
-                val stock = parts.getOrNull(9)?.toDoubleOrNull() ?: 0.0
-                val description = parts.getOrNull(10) ?: ""
+
+                val col6 = parts.getOrNull(6) ?: ""
+                var weight = col6.toDoubleOrNull() ?: 0.0
+                var unitIndex = 7
+                var priceIndex = 8
+                var costIndex = 9
+                var stockIndex = 10
+                var descIndex = 11
+
+                if (col6.toDoubleOrNull() == null && col6.isNotBlank()) {
+                    weight = 0.0
+                    unitIndex = 6
+                    priceIndex = 7
+                    costIndex = 8
+                    stockIndex = 9
+                    descIndex = 10
+                }
+
+                val unit = parts.getOrNull(unitIndex)?.ifEmpty { if (categoryType == "Wood") "متر طول" else "عدد" } ?: "عدد"
+                val price = parts.getOrNull(priceIndex)?.toDoubleOrNull() ?: 0.0
+                val cost = parts.getOrNull(costIndex)?.toDoubleOrNull() ?: 0.0
+                val stock = parts.getOrNull(stockIndex)?.toDoubleOrNull() ?: 0.0
+                val description = parts.getOrNull(descIndex) ?: ""
 
                 list.add(
                     Product(
@@ -119,6 +138,7 @@ object CsvImportExportUtil {
                         colorCode = colorCode,
                         surfaceTreatment = surfaceTreatment,
                         branchCount = branchCount,
+                        weight = weight,
                         unit = unit,
                         price = price,
                         cost = cost,
@@ -136,16 +156,19 @@ object CsvImportExportUtil {
     fun exportCustomersToCsv(context: Context, customers: List<Customer>) {
         val sb = StringBuilder()
         sb.append("\uFEFF")
-        sb.append("Name,Company,Phone,Email,EconomicCode,NationalId,BillingAddress\n")
+        sb.append("Name,Company,Phone,Mobile,Email,EconomicCode,NationalId,BillingAddress,PostalCode,Notes\n")
 
         customers.forEach { c ->
             sb.append("${escapeCsv(c.name)},")
             sb.append("${escapeCsv(c.company)},")
             sb.append("${escapeCsv(c.phone)},")
+            sb.append("${escapeCsv(c.mobile)},")
             sb.append("${escapeCsv(c.email)},")
             sb.append("${escapeCsv(c.taxId)},")
             sb.append("${escapeCsv(c.nationalId)},")
-            sb.append("${escapeCsv(c.billingAddress)}\n")
+            sb.append("${escapeCsv(c.billingAddress)},")
+            sb.append("${escapeCsv(c.postalCode)},")
+            sb.append("${escapeCsv(c.notes)}\n")
         }
 
         val cacheDir = File(context.cacheDir, "exports")
@@ -159,8 +182,8 @@ object CsvImportExportUtil {
     fun generateSampleCustomersCsv(context: Context) {
         val sb = StringBuilder()
         sb.append("\uFEFF")
-        sb.append("Name,Company,Phone,Email,EconomicCode,NationalId,BillingAddress\n")
-        sb.append("رضا محمدی,صنایع چوبی نست,09121112233,reza@nest.ir,4111222333,1010203040,تهران - خیابان ولیعصر - پلاک ۱۲\n")
+        sb.append("Name,Company,Phone,Mobile,Email,EconomicCode,NationalId,BillingAddress,PostalCode,Notes\n")
+        sb.append("رضا محمدی,صنایع چوبی نست,02188888888,09121112233,reza@nest.ir,4111222333,1010203040,تهران - خیابان ولیعصر - پلاک ۱۲,1987654321,مشتری خوش‌حساب پروژه‌های چوب پلاست\n")
 
         val cacheDir = File(context.cacheDir, "exports")
         cacheDir.mkdirs()
@@ -185,20 +208,96 @@ object CsvImportExportUtil {
 
                 val company = parts.getOrNull(1) ?: ""
                 val phone = parts.getOrNull(2) ?: ""
-                val email = parts.getOrNull(3) ?: ""
-                val taxId = parts.getOrNull(4) ?: ""
-                val nationalId = parts.getOrNull(5) ?: ""
-                val billingAddress = parts.getOrNull(6) ?: ""
+                val mobile = parts.getOrNull(3) ?: ""
+                val email = parts.getOrNull(4) ?: ""
+                val taxId = parts.getOrNull(5) ?: ""
+                val nationalId = parts.getOrNull(6) ?: ""
+                val billingAddress = parts.getOrNull(7) ?: ""
+                val postalCode = parts.getOrNull(8) ?: ""
+                val notes = parts.getOrNull(9) ?: ""
 
                 list.add(
                     Customer(
                         name = name,
                         company = company,
                         phone = phone,
+                        mobile = mobile,
                         email = email,
                         taxId = taxId,
                         nationalId = nationalId,
-                        billingAddress = billingAddress
+                        billingAddress = billingAddress,
+                        postalCode = postalCode,
+                        notes = notes
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    // --- PROJECTS IMPORT / EXPORT ---
+
+    fun exportProjectsToCsv(context: Context, projects: List<com.example.data.model.Project>) {
+        val sb = StringBuilder()
+        sb.append("\uFEFF")
+        sb.append("Code,Name,CustomerName,Status,Description\n")
+
+        projects.forEach { p ->
+            sb.append("${escapeCsv(p.code)},")
+            sb.append("${escapeCsv(p.name)},")
+            sb.append("${escapeCsv(p.customerName)},")
+            sb.append("${escapeCsv(p.status)},")
+            sb.append("${escapeCsv(p.description)}\n")
+        }
+
+        val cacheDir = File(context.cacheDir, "exports")
+        cacheDir.mkdirs()
+        val file = File(cacheDir, "Projects_List.csv")
+        FileOutputStream(file).use { it.write(sb.toString().toByteArray(Charsets.UTF_8)) }
+
+        shareFile(context, file, "text/csv", "اشتراک‌گذاری لیست پروژه‌ها (اکسل)")
+    }
+
+    fun generateSampleProjectsCsv(context: Context) {
+        val sb = StringBuilder()
+        sb.append("\uFEFF")
+        sb.append("Code,Name,CustomerName,Status,Description\n")
+        sb.append("PRJ-101,پروژه ویلایی لواسان - روف گاردن,رضا محمدی,فعال,اجرای چوب پلاست کفپوش و زیرسازی روف گاردن\n")
+        sb.append("PRJ-102,پروژه تجاری آرمون,صنایع چوبی نست,تکمیل شده,نمای چوب پلاست و چوب ترمو\n")
+
+        val cacheDir = File(context.cacheDir, "exports")
+        cacheDir.mkdirs()
+        val file = File(cacheDir, "Sample_Projects_Template.csv")
+        FileOutputStream(file).use { it.write(sb.toString().toByteArray(Charsets.UTF_8)) }
+
+        shareFile(context, file, "text/csv", "دانلود نمونه فایل ورود پروژه‌ها")
+    }
+
+    fun parseProjectsCsv(csvText: String): List<com.example.data.model.Project> {
+        val list = mutableListOf<com.example.data.model.Project>()
+        val lines = csvText.replace("\uFEFF", "").split("\n")
+        if (lines.size <= 1) return list
+
+        for (i in 1 until lines.size) {
+            val line = lines[i].trim()
+            if (line.isBlank()) continue
+            val parts = parseCsvLine(line)
+            if (parts.isNotEmpty()) {
+                val code = parts.getOrNull(0) ?: ""
+                val name = parts.getOrNull(1) ?: ""
+                if (name.isBlank() && code.isBlank()) continue
+
+                val customerName = parts.getOrNull(2) ?: ""
+                val status = parts.getOrNull(3)?.ifEmpty { "فعال" } ?: "فعال"
+                val description = parts.getOrNull(4) ?: ""
+
+                list.add(
+                    com.example.data.model.Project(
+                        code = code,
+                        name = if (name.isNotBlank()) name else code,
+                        customerName = customerName,
+                        status = status,
+                        description = description
                     )
                 )
             }
@@ -225,7 +324,7 @@ object CsvImportExportUtil {
         sb.append("نام خریدار,${customer?.name ?: "-"},نام شرکت,${customer?.company ?: "-"},شماره تماس,${customer?.phone ?: "-"}\n")
         sb.append("شناسه/کد اقتصادی,${customer?.taxId ?: "-"},کد ملی,${customer?.nationalId ?: "-"},آدرس,${escapeCsv(customer?.billingAddress ?: "-")}\n\n")
 
-        sb.append("کد کالا (SKU),نام کالا / شرح,دسته‌بندی,کد رنگ,پوشش سطح,تعداد شاخه,متراژ/تعداد,واحد,قیمت واحد (تومان),مالیات (%),تخفیف (تومان),مبلغ کل (تومان)\n")
+        sb.append("کد کالا (SKU),نام کالا / شرح,دسته‌بندی,کد رنگ,پوشش سطح,تعداد شاخه,وزن (kg),متراژ/تعداد,واحد,قیمت واحد (تومان),مالیات (%),تخفیف (تومان),مبلغ کل (تومان)\n")
 
         items.forEach { item ->
             val itemDisc = item.quantity * item.unitPrice * (item.discountPercent / 100.0)
@@ -236,6 +335,7 @@ object CsvImportExportUtil {
             sb.append("${escapeCsv(item.colorCode)},")
             sb.append("${escapeCsv(item.surfaceTreatment)},")
             sb.append("${item.branchCount},")
+            sb.append("${item.weight},")
             sb.append("${item.quantity},")
             sb.append("${escapeCsv(item.unit)},")
             sb.append("${item.unitPrice},")
@@ -288,9 +388,9 @@ object CsvImportExportUtil {
         }
 
         sb.append("\nموجودی انبار محصولات\n")
-        sb.append("SKU,نام کالا,نوع,کد رنگ,پوشش سطح,تعداد شاخه,موجودی,واحد,قیمت فروش\n")
+        sb.append("SKU,نام کالا,نوع,کد رنگ,پوشش سطح,تعداد شاخه,وزن (kg),موجودی,واحد,قیمت فروش\n")
         products.forEach { p ->
-            sb.append("${escapeCsv(p.sku)},${escapeCsv(p.name)},${escapeCsv(p.categoryType)},${escapeCsv(p.colorCode)},${escapeCsv(p.surfaceTreatment)},${p.branchCount},${p.stock},${escapeCsv(p.unit)},${p.price}\n")
+            sb.append("${escapeCsv(p.sku)},${escapeCsv(p.name)},${escapeCsv(p.categoryType)},${escapeCsv(p.colorCode)},${escapeCsv(p.surfaceTreatment)},${p.branchCount},${p.weight},${p.stock},${escapeCsv(p.unit)},${p.price}\n")
         }
 
         val cacheDir = File(context.cacheDir, "exports")
@@ -614,7 +714,8 @@ object CsvImportExportUtil {
                                 colorCode = o.optString("colorCode", ""),
                                 surfaceTreatment = o.optString("surfaceTreatment", ""),
                                 branchCount = o.optDouble("branchCount", 0.0),
-                                categoryType = o.optString("categoryType", "Wood")
+                                categoryType = o.optString("categoryType", "Wood"),
+                                weight = o.optDouble("weight", 0.0)
                             )
                         )
                     }
@@ -749,7 +850,8 @@ object CsvImportExportUtil {
                                 consumablesCost = o.optDouble("consumablesCost", 0.0),
                                 crossSectionFactor = o.optDouble("crossSectionFactor", 1.0),
                                 initialAreaSqm = o.optDouble("initialAreaSqm", 0.0),
-                                discountAmount = o.optDouble("discountAmount", 0.0)
+                                discountAmount = o.optDouble("discountAmount", 0.0),
+                                weight = o.optDouble("weight", 0.0)
                             )
                         )
                     }

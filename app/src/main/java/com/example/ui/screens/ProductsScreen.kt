@@ -89,6 +89,7 @@ fun ProductsScreen(
     var colorCode by remember { mutableStateOf("") }
     var surfaceTreatment by remember { mutableStateOf("") }
     var branchCount by remember { mutableStateOf("") }
+    var weight by remember { mutableStateOf("") }
     var categoryType by remember { mutableStateOf("Wood") }
 
     fun resetForm() {
@@ -103,6 +104,7 @@ fun ProductsScreen(
         colorCode = ""
         surfaceTreatment = ""
         branchCount = ""
+        weight = ""
         categoryType = "Wood"
     }
 
@@ -272,7 +274,12 @@ fun ProductsScreen(
                                     colorCode = prod.colorCode
                                     surfaceTreatment = prod.surfaceTreatment
                                     branchCount = if (prod.branchCount > 0) prod.branchCount.toString() else ""
-                                    categoryType = prod.categoryType
+                                    weight = if (prod.weight > 0) Helper.formatDouble(prod.weight, false) else ""
+                                    val rawType = prod.categoryType
+                                    val rawCat = prod.category
+                                    val isWoodCat = rawType == "Wood" || rawType == "چوب پلاست" || rawCat.contains("چوب") || rawCat.contains("Wood") || rawCat.contains("WPC")
+                                    categoryType = if (isWoodCat) "Wood" else "Accessory"
+                                    category = if (isWoodCat) (if (isRtl) "چوب پلاست" else "WPC") else (if (isRtl) "پیچ و کلیپس" else "Accessory")
                                     showAddDialog = true
                                 }
                                 .testTag("product_card_${prod.id}"),
@@ -306,6 +313,19 @@ fun ProductsScreen(
                                             text = "کد رنگ: ${prod.colorCode.ifEmpty { "-" }} | سطح: ${prod.surfaceTreatment.ifEmpty { "-" }} | شاخه: ${Helper.formatDouble(prod.branchCount, viewModel.usePersianDigits)}",
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    if (prod.weight > 0) {
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        val weightText = if (prod.categoryType == "Wood" || prod.categoryType == "چوب پلاست")
+                                            "وزن هر متر: ${Helper.formatDouble(prod.weight, viewModel.usePersianDigits)} kg/m"
+                                        else
+                                            "وزن واحد: ${Helper.formatDouble(prod.weight, viewModel.usePersianDigits)} kg"
+                                        Text(
+                                            text = weightText,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.tertiary
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
@@ -344,6 +364,7 @@ fun ProductsScreen(
 
     // --- Add/Edit Dialog ---
     if (showAddDialog) {
+        val isWood = categoryType == "Wood" || categoryType == "چوب پلاست"
         Dialog(onDismissRequest = { showAddDialog = false }) {
             Card(
                 modifier = Modifier
@@ -380,7 +401,6 @@ fun ProductsScreen(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            val isWood = categoryType == "Wood"
                             FilterChip(
                                 selected = isWood,
                                 onClick = {
@@ -402,7 +422,7 @@ fun ProductsScreen(
                         }
                     }
 
-                    if (categoryType == "Wood") {
+                    if (isWood) {
                         item {
                             var expandedProfileMenu by remember { mutableStateOf(false) }
                             ExposedDropdownMenuBox(
@@ -440,6 +460,9 @@ fun ProductsScreen(
                                             onClick = {
                                                 name = profile.name
                                                 sku = profile.sku
+                                                if (profile.defaultWeight > 0) {
+                                                    weight = profile.defaultWeight.toString()
+                                                }
                                                 expandedProfileMenu = false
                                             }
                                         )
@@ -531,7 +554,7 @@ fun ProductsScreen(
                         }
                     }
 
-                    if (categoryType == "Wood") {
+                    if (isWood) {
                         item {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 SelectOnFocusTextField(
@@ -632,7 +655,7 @@ fun ProductsScreen(
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AccordionPickerField(
-                                value = unit.ifEmpty { if (categoryType == "Wood") "متر طول" else "قطعه" },
+                                value = unit.ifEmpty { if (isWood) "متر طول" else "قطعه" },
                                 onValueChange = { unit = it },
                                 label = if (isRtl) "واحد اندازه‌گیری" else "Measurement Unit",
                                 placeholder = "متر طول / قطعه / عدد...",
@@ -645,6 +668,22 @@ fun ProductsScreen(
                                 onValueChange = { stock = it },
                                 label = { Text(if (isRtl) "موجودی انبار" else "Stock count") },
                                 modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                            SelectOnFocusTextField(
+                                value = weight,
+                                onValueChange = { weight = it },
+                                label = {
+                                    Text(
+                                        text = if (isRtl) "وزن" else "Weight",
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                },
+                                placeholder = { Text(if (isWood) "2.61" else "0.05", fontSize = 10.sp) },
+                                modifier = Modifier.weight(1f).testTag("product_weight_input"),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true
                             )
@@ -689,7 +728,8 @@ fun ProductsScreen(
                                             colorCode = colorCode,
                                             surfaceTreatment = surfaceTreatment,
                                             branchCount = branchCount.toDoubleOrNull() ?: 0.0,
-                                            categoryType = categoryType
+                                            categoryType = if (isWood) "Wood" else "Accessory",
+                                            weight = weight.toDoubleOrNull() ?: 0.0
                                         )
                                         viewModel.saveProduct(p)
                                         showAddDialog = false

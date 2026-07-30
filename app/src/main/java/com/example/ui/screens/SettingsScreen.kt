@@ -785,6 +785,45 @@ fun SettingsScreen(
                                 Text(text = if (isRtl) "بازیابی پشتیبان" else "Restore JSON", fontSize = 11.sp)
                             }
                         }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        Text(
+                            text = if (isRtl) "دانلود نمونه فایل‌های ورودی اکسل (CSV):" else "Download CSV Import Sample Templates:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { CsvImportExportUtil.generateSampleProductsCsv(context) },
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(text = if (isRtl) "نمونه کالاها" else "Products CSV", fontSize = 10.sp, maxLines = 1)
+                            }
+                            OutlinedButton(
+                                onClick = { CsvImportExportUtil.generateSampleCustomersCsv(context) },
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(text = if (isRtl) "نمونه مشتریان" else "Customers CSV", fontSize = 10.sp, maxLines = 1)
+                            }
+                            OutlinedButton(
+                                onClick = { CsvImportExportUtil.generateSampleProjectsCsv(context) },
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(text = if (isRtl) "نمونه پروژه‌ها" else "Projects CSV", fontSize = 10.sp, maxLines = 1)
+                            }
+                        }
                     }
                 }
             }

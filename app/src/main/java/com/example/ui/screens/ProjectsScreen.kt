@@ -29,12 +29,18 @@ import com.example.ui.InvoiceViewModel
 import com.example.ui.components.SelectOnFocusTextField
 import com.example.util.Helper
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.util.CsvImportExportUtil
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectsScreen(
     viewModel: InvoiceViewModel,
     onNavigateToNewInvoiceWithProject: (projectName: String, customerId: Long?) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val isRtl = viewModel.selectedLanguage == "fa"
     val layoutDirection = if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
@@ -44,6 +50,30 @@ fun ProjectsScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedStatusFilter by remember { mutableStateOf("All") } // All, فعال, تکمیل شده, معلق
+    var showMoreMenu by remember { mutableStateOf(false) }
+
+    val csvPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { u ->
+            try {
+                val inputStream = context.contentResolver.openInputStream(u)
+                val csvText = inputStream?.bufferedReader()?.use { it.readText() } ?: ""
+                val imported = CsvImportExportUtil.parseProjectsCsv(csvText)
+                if (imported.isNotEmpty()) {
+                    imported.forEach { proj ->
+                        viewModel.saveProject(proj)
+                    }
+                    Toast.makeText(context, if (isRtl) "${imported.size} پروژه با موفقیت وارد گردید" else "Imported ${imported.size} projects", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, if (isRtl) "هیچ پروژه معتبری در فایل پیدا نشد" else "No valid projects found", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "خطا در خواندن فایل: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     var showProjectDialog by remember { mutableStateOf(false) }
     var editingProject by remember { mutableStateOf<Project?>(null) }
@@ -105,6 +135,39 @@ fun ProjectsScreen(
                         )
                     },
                     actions = {
+                        IconButton(onClick = { showMoreMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "منو")
+                        }
+                        DropdownMenu(
+                            expanded = showMoreMenu,
+                            onDismissRequest = { showMoreMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(if (isRtl) "خروجی اکسل پروژه‌ها (CSV)" else "Export Projects CSV", fontSize = 12.sp) },
+                                leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    CsvImportExportUtil.exportProjectsToCsv(context, projects)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (isRtl) "دانلود نمونه فایل پروژه‌ها" else "Download Template", fontSize = 12.sp) },
+                                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    CsvImportExportUtil.generateSampleProjectsCsv(context)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (isRtl) "ورود پروژه‌ها از فایل CSV" else "Import Projects CSV", fontSize = 12.sp) },
+                                leadingIcon = { Icon(Icons.Default.FileUpload, contentDescription = null) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    csvPickerLauncher.launch("text/*")
+                                }
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
                         Button(
                             onClick = { openAddDialog() },
                             shape = RoundedCornerShape(10.dp),

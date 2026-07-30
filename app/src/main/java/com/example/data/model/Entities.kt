@@ -75,7 +75,8 @@ data class Product(
     val branchCount: Double = 0.0,
     val categoryType: String = "Wood", // "Wood" (چوب پلاست) or "Accessory" (پیچ و کلیپس)
     val crossSectionFactor: Double = 0.0,
-    val initialAreaSqm: Double = 0.0
+    val initialAreaSqm: Double = 0.0,
+    val weight: Double = 0.0
 )
 
 @Entity(tableName = "invoices")
@@ -152,7 +153,8 @@ data class InvoiceLineItem(
     val teamSize: Int = 0, // تعداد نفرات تیم اجرا
     val accommodationCost: Double = 0.0, // هزینه اسکان (تومان)
     val transportationCost: Double = 0.0, // هزینه رفت و آمد (تومان)
-    val consumablesCost: Double = 0.0 // ضد زنگ و اقلام مصرفی (تومان)
+    val consumablesCost: Double = 0.0, // ضد زنگ و اقلام مصرفی (تومان)
+    val weight: Double = 0.0 // وزن هر واحد (کیلوگرم)
 )
 
 data class WoodProfilePreset(
@@ -160,30 +162,31 @@ data class WoodProfilePreset(
     val sku: String,
     val crossSectionFactor: Double, // cross_section_sqm_per_m
     val category: String, // Cladding, Decking, Board
-    val defaultPrice: Double = 320000.0
+    val defaultPrice: Double = 320000.0,
+    val defaultWeight: Double = 0.0 // kg per meter
 )
 
 object WoodPresets {
     val profiles = listOf(
-        WoodProfilePreset("FEEL", "FC140", 7.1428, "Cladding"),
-        WoodProfilePreset("LEAD", "FC103", 9.7, "Cladding"),
-        WoodProfilePreset("EXPORT", "FC150", 6.6666, "Cladding"),
-        WoodProfilePreset("ROMANCE", "FC142", 7.1428, "Cladding"),
-        WoodProfilePreset("SHINE", "FC21", 7.1428, "Decking"),
-        WoodProfilePreset("POND", "FD155", 6.25, "Decking"),
-        WoodProfilePreset("FAIR", "FD26", 6.25, "Decking"),
-        WoodProfilePreset("ONCE", "FD142", 6.9444, "Decking"),
-        WoodProfilePreset("T-ONCE", "FD142T", 6.9444, "Decking"),
-        WoodProfilePreset("FLEX", "FD140", 6.897, "Decking"),
-        WoodProfilePreset("CLAN", "FD92", 10.8696, "Decking"),
-        WoodProfilePreset("T-CLAN", "FD92T", 10.8696, "Decking"),
-        WoodProfilePreset("FAME", "FD72", 13.8888, "Decking"),
-        WoodProfilePreset("FAME-T", "FD72T", 13.8888, "Decking"),
-        WoodProfilePreset("FATE", "FB290", 3.3898, "Board"),
-        WoodProfilePreset("FLAT", "FB130", 7.6923, "Board"),
-        WoodProfilePreset("PETAL", "FB68", 14.7058, "Board"),
-        WoodProfilePreset("TAIL", "FB55", 18.1818, "Board"),
-        WoodProfilePreset("VIVA", "FB92", 10.99, "Board")
+        WoodProfilePreset("FEEL", "FC140", 7.1428, "Cladding", 320000.0, 2.45),
+        WoodProfilePreset("LEAD", "FC103", 9.7, "Cladding", 320000.0, 1.85),
+        WoodProfilePreset("EXPORT", "FC150", 6.6666, "Cladding", 320000.0, 2.80),
+        WoodProfilePreset("ROMANCE", "FC142", 7.1428, "Cladding", 320000.0, 2.50),
+        WoodProfilePreset("SHINE", "FC21", 7.1428, "Decking", 320000.0, 2.30),
+        WoodProfilePreset("POND", "FD155", 6.25, "Decking", 320000.0, 3.10),
+        WoodProfilePreset("FAIR", "FD26", 6.25, "Decking", 320000.0, 2.90),
+        WoodProfilePreset("ONCE", "FD142", 6.9444, "Decking", 320000.0, 2.61),
+        WoodProfilePreset("T-ONCE", "FD142T", 6.9444, "Decking", 320000.0, 2.61),
+        WoodProfilePreset("FLEX", "FD140", 6.897, "Decking", 320000.0, 2.75),
+        WoodProfilePreset("CLAN", "FD92", 10.8696, "Decking", 320000.0, 2.10),
+        WoodProfilePreset("T-CLAN", "FD92T", 10.8696, "Decking", 320000.0, 2.10),
+        WoodProfilePreset("FAME", "FD72", 13.8888, "Decking", 320000.0, 1.60),
+        WoodProfilePreset("FAME-T", "FD72T", 13.8888, "Decking", 320000.0, 1.60),
+        WoodProfilePreset("FATE", "FB290", 3.3898, "Board", 320000.0, 5.20),
+        WoodProfilePreset("FLAT", "FB130", 7.6923, "Board", 320000.0, 2.40),
+        WoodProfilePreset("PETAL", "FB68", 14.7058, "Board", 320000.0, 1.25),
+        WoodProfilePreset("TAIL", "FB55", 18.1818, "Board", 320000.0, 1.05),
+        WoodProfilePreset("VIVA", "FB92", 10.99, "Board", 320000.0, 1.70)
     )
 
     fun findPresetByNameOrSku(query: String): WoodProfilePreset? {

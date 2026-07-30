@@ -1566,6 +1566,10 @@ fun getNestInvoiceHtmlContent(
     var totalAccVatRial = 0.0
     var totalAccGrandRial = 0.0
 
+    val accUnits = accessoryItems.map { if (it.unit.isNotBlank()) it.unit else "قطعه" }.distinct()
+    val accUnitLabel = if (accUnits.size == 1) accUnits.first() else "عدد / قطعه"
+    val accTotalTitle = if (accUnits.size == 1) "جمع کل (ریال) / ${accUnits.first()} :" else "جمع کل (ریال) / اقلام تکمیلی :"
+
     var accTrs = ""
     val accStartIdx = woodItems.size + 1
     for ((idx, item) in accessoryItems.withIndex()) {
@@ -1690,6 +1694,10 @@ fun getNestInvoiceHtmlContent(
     val trailingTd = if (instFooterTrailingColSpan > 0) """<td colspan="$instFooterTrailingColSpan">---</td>""" else ""
 
     // Combined Totals
+    val totalWoodWeight = woodItems.sumOf { (if (it.quantity > 0) it.quantity else it.branchCount * 3.0) * it.weight }
+    val totalAccWeight = accessoryItems.sumOf { it.quantity * it.weight }
+    val totalInvoiceWeight = totalWoodWeight + totalAccWeight
+
     val grandTotalWoodAndClips = totalWoodGrandRial + totalAccGrandRial + totalInstGrandRial
     val totalTaxAndVat = (totalWoodTaxRial + totalWoodVatRial) + (totalAccTaxRial + totalAccVatRial) + (totalInstTaxRial + totalInstVatRial)
     val totalDiscountRial = (totalWoodPriceRial - totalWoodPayableRial) + (totalAccPriceRial - totalAccPayableRial) + (totalInstPriceRial - totalInstPayableRial) + (invoice.discountAmount * toRial)
@@ -1908,9 +1916,9 @@ fun getNestInvoiceHtmlContent(
                 </tbody>
                 <tfoot>
                     <tr class="bg-gray bold text-center">
-                        <td colspan="3" class="text-right" style="padding-right:8px;">جمع کل (ریال) / قطعات :</td>
+                        <td colspan="3" class="text-right" style="padding-right:8px;">$accTotalTitle</td>
                         <td>${formatNum(totalAccQty)}</td>
-                        <td>قطعه</td>
+                        <td>$accUnitLabel</td>
                         <td colspan="2">${formatNum(totalAccPriceRial)}</td>
                         <td>---</td>
                         <td>${formatNum(totalAccPayableRial)}</td>
@@ -1974,6 +1982,12 @@ fun getNestInvoiceHtmlContent(
                     <td class="bold" style="font-size: 10.5px;">ارزش افزوده (مالیات + عوارض) :</td>
                     <td class="bold text-center" style="font-size: 10.5px;">${formatNum(totalTaxAndVat)}</td>
                 </tr>
+                ${if (totalInvoiceWeight > 0.0) """
+                <tr>
+                    <td class="bold" style="font-size: 10.5px;">مجموع وزن تقریبی بار :</td>
+                    <td class="bold text-center" style="font-size: 10.5px;">${if (totalInvoiceWeight >= 1000) "${formatNum(totalInvoiceWeight / 1000.0)} تن (${formatNum(totalInvoiceWeight)} kg)" else "${formatNum(totalInvoiceWeight)} کیلوگرم"}</td>
+                </tr>
+                """ else ""}
                 <tr class="bg-gray">
                     <td class="bold" style="font-size: 10.5px;">${
                         when {

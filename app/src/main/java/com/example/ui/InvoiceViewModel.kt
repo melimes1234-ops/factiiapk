@@ -262,7 +262,59 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
                 editorShippingTerms = if (details.invoice.shippingTerms.isNotBlank()) details.invoice.shippingTerms else s.defaultShippingTerms
                 editorBankAccountId = details.invoice.bankAccountId
                 editorLineItems.clear()
-                editorLineItems.addAll(details.lineItems)
+                val sanitizedLineItems = details.lineItems.map { rawItem ->
+                    var item = rawItem
+                    val isWood = item.categoryType == "Wood" || item.categoryType == "چوب پلاست"
+                    val isAccessory = item.categoryType == "Accessory" || item.categoryType == "پیچ و کلیپس"
+                    if (isWood) {
+                        var factor = item.crossSectionFactor
+                        val preset = WoodPresets.findPresetByNameOrSku(item.name) ?: WoodPresets.findPresetByNameOrSku(item.sku)
+                        if (factor <= 0.0 || (factor == 1.0 && preset != null && preset.crossSectionFactor != 1.0)) {
+                            factor = preset?.crossSectionFactor ?: 7.1428
+                        }
+                        var branch = item.branchCount
+                        var qty = item.quantity
+                        var initialArea = item.initialAreaSqm
+
+                        if (branch <= 0.0 && qty > 0.0) {
+                            branch = kotlin.math.ceil(qty / 3.0)
+                        }
+                        if (qty <= 0.0 && branch > 0.0) {
+                            qty = branch * 3.0
+                        }
+                        if (initialArea <= 0.0 && qty > 0.0 && factor > 0.0) {
+                            initialArea = qty / factor
+                        }
+                        item = item.copy(
+                            unit = "متر طول",
+                            crossSectionFactor = factor,
+                            branchCount = branch,
+                            quantity = qty,
+                            initialAreaSqm = initialArea
+                        )
+                    } else if (isAccessory) {
+                        if (item.unit.isBlank()) {
+                            val preset = AccessoryPresets.findPresetByNameOrSku(item.name) ?: AccessoryPresets.findPresetByNameOrSku(item.sku)
+                            item = item.copy(unit = preset?.unit ?: "قطعه")
+                        }
+                    }
+                    if (item.weight <= 0.0) {
+                        val dbProd = products.value.find { 
+                            (it.name.isNotBlank() && item.name.isNotBlank() && it.name.trim().equals(item.name.trim(), ignoreCase = true)) ||
+                            (it.sku.isNotBlank() && item.sku.isNotBlank() && it.sku.trim().equals(item.sku.trim(), ignoreCase = true))
+                        }
+                        if (dbProd != null && dbProd.weight > 0.0) {
+                            item = item.copy(weight = dbProd.weight)
+                        } else {
+                            val preset = WoodPresets.findPresetByNameOrSku(item.name) ?: WoodPresets.findPresetByNameOrSku(item.sku)
+                            if (preset != null && preset.defaultWeight > 0.0) {
+                                item = item.copy(weight = preset.defaultWeight)
+                            }
+                        }
+                    }
+                    item
+                }
+                editorLineItems.addAll(sanitizedLineItems)
             }
         }
     }
@@ -270,8 +322,9 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
     fun addLineItem(product: Product? = null) {
         if (product != null) {
             val isWoodProd = product.categoryType == "Wood" || product.categoryType == "چوب پلاست"
-            val targetUnit = if (isWoodProd) "متر طول" else "قطعه"
+            val targetUnit = if (isWoodProd) "متر طول" else (if (product.unit.isNotBlank()) product.unit else "قطعه")
             val factor = if (product.crossSectionFactor > 0) product.crossSectionFactor else (WoodPresets.findPresetByNameOrSku(product.name)?.crossSectionFactor ?: 0.0)
+            val defaultW = if (product.weight > 0) product.weight else (WoodPresets.findPresetByNameOrSku(product.name)?.defaultWeight ?: 0.0)
             editorLineItems.add(
                 InvoiceLineItem(
                     invoiceId = editorInvoiceId ?: 0,
@@ -287,7 +340,8 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
                     branchCount = product.branchCount,
                     categoryType = if (isWoodProd) "Wood" else "Accessory",
                     crossSectionFactor = factor,
-                    initialAreaSqm = product.initialAreaSqm
+                    initialAreaSqm = product.initialAreaSqm,
+                    weight = defaultW
                 )
             )
         } else {
