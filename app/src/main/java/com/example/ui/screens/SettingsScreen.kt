@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -101,6 +103,8 @@ fun SettingsScreen(
     var defaultColorCodes by remember { mutableStateOf("N1, N2, N3, C1, C2, W1, W2, G1, G2") }
     var defaultSurfaceTreatments by remember { mutableStateOf("BR (برس خورده), Emboss (طرح چوب / امبوس), Sanded (سنباده خورده), Smooth (صیقلی)") }
     var nestLogoStyle by remember { mutableStateOf("light") }
+    var appVersion by remember { mutableStateOf("1.2.0") }
+    var updateDownloadUrl by remember { mutableStateOf("https://github.com/melimes1234-ops/factiiapk/releases") }
 
     // Update state when settings load
     LaunchedEffect(settings) {
@@ -124,6 +128,8 @@ fun SettingsScreen(
             defaultColorCodes = s.defaultColorCodes
             defaultSurfaceTreatments = s.defaultSurfaceTreatments
             nestLogoStyle = s.nestLogoStyle
+            appVersion = s.appVersion
+            updateDownloadUrl = s.updateDownloadUrl
         }
     }
 
@@ -692,6 +698,119 @@ fun SettingsScreen(
                 }
             }
 
+            // --- System Update & APK Download Card ---
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = cardBackground),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SystemUpdate,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = if (isRtl) "سیستم بروزرسانی و دریافت فایل APK" else "App Update & APK Download System",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+
+                        Text(
+                            text = if (isRtl) "لینک دانلود مستقیم فایل نصب برنامه (APK) یا آدرس صفحه انتشار را وارد نمایید. کاربران با کلیک بر روی بررسی بروزرسانی به لینک مربوطه هدایت می‌شوند." else "Set the direct APK download or release page URL. Clicking Check for Update will navigate users to download the newest APK.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = if (isRtl) "نسخه فعلی نصب شده: $appVersion" else "Installed Version: $appVersion",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        SelectOnFocusTextField(
+                            value = updateDownloadUrl,
+                            onValueChange = { updateDownloadUrl = it },
+                            label = { Text(if (isRtl) "آدرس (URL) صفحه دانلود یا APK برنامه" else "APK Download / Update Page URL") },
+                            placeholder = { Text("https://example.com/app-latest.apk") },
+                            modifier = Modifier.fillMaxWidth().testTag("app_update_url_field"),
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(Icons.Default.Link, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    val url = updateDownloadUrl.trim()
+                                    if (url.startsWith("http://") || url.startsWith("https://")) {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                            context.startActivity(intent)
+                                            Toast.makeText(
+                                                context,
+                                                if (isRtl) "در حال هدایت به صفحه دانلود نسخه جدید..." else "Navigating to update download page...",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                if (isRtl) "خطا در باز کردن لینک: ${e.localizedMessage}" else "Error opening URL: ${e.localizedMessage}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            if (isRtl) "لطفاً یک آدرس معتبر اینترنتی با http یا https وارد کنید" else "Please enter a valid URL starting with http:// or https://",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).testTag("check_update_button"),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (isRtl) "بررسی و دانلود نسخه جدید APK" else "Check & Download New Version",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // --- Save Preferences ---
             item {
                 Button(
@@ -715,7 +834,9 @@ fun SettingsScreen(
                             autoIncrementNumber = autoIncrementNumber.toIntOrNull() ?: 1001,
                             defaultColorCodes = defaultColorCodes,
                             defaultSurfaceTreatments = defaultSurfaceTreatments,
-                            nestLogoStyle = nestLogoStyle
+                            nestLogoStyle = nestLogoStyle,
+                            appVersion = appVersion,
+                            updateDownloadUrl = updateDownloadUrl
                         )
                         viewModel.saveAppSettings(s)
                     },

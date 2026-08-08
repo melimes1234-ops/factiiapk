@@ -30,7 +30,9 @@ data class AppSettings(
     val defaultShippingTerms: String = "ارسال توسط باربری / تحویل در محل کارخانه",
     val defaultColorCodes: String = "N1, N2, N3, C1, C2, W1, W2, G1, G2",
     val defaultSurfaceTreatments: String = "BR (برس خورده), Emboss (طرح چوب / امبوس), Sanded (سنباده خورده), Smooth (صیقلی)",
-    val nestLogoStyle: String = "light" // "light" (لوگوی روشن / سفید) or "dark" (لوگوی تیره / مشکی)
+    val nestLogoStyle: String = "light", // "light" (لوگوی روشن / سفید) or "dark" (لوگوی تیره / مشکی)
+    val appVersion: String = "1.2.0",
+    val updateDownloadUrl: String = "https://github.com/melimes1234-ops/factiiapk/releases"
 )
 
 @Entity(tableName = "customers")
@@ -280,13 +282,7 @@ data class CabinetPreset(
 )
 
 object CabinetPresets {
-    val items = listOf(
-        CabinetPreset("صفحه کابینت خام", "60 x 48 x 410", 46000000.0),
-        CabinetPreset("صفحه کابینت روکش HPL", "60 x 48 x 410", 52000000.0),
-        CabinetPreset("صفحه کابینت دو لب گرد", "60 x 48 x 410", 48000000.0),
-        CabinetPreset("صفحه کابینت یک لب گرد", "60 x 48 x 410", 47000000.0),
-        CabinetPreset("مغزی MDF خام صفحه کابینت", "60 x 48 x 410", 40000000.0)
-    )
+    val items = emptyList<CabinetPreset>()
 
     fun findPresetByName(query: String): CabinetPreset? {
         if (query.isBlank()) return null

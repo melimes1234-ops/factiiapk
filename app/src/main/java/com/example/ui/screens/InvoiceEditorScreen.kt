@@ -1562,7 +1562,7 @@ fun LineItemEditorRow(
                                 item.copy(
                                     categoryType = "Cabinet",
                                     unit = "عدد",
-                                    description = if (item.description.isNotEmpty()) item.description else "60 x 48 x 410",
+                                    description = item.description,
                                     quantity = if (item.quantity > 0) item.quantity else 1.0,
                                     branchCount = 0.0
                                 )
@@ -1575,18 +1575,21 @@ fun LineItemEditorRow(
             }
 
             if (isCabinet) {
-                val cabinetOptions = remember { com.example.data.model.CabinetPresets.items.map { it.name } }
+                val cabinetOptions = remember(allProducts) {
+                    allProducts.filter { it.categoryType == "Cabinet" || it.categoryType == "کابینت" }.map { it.name }.filter { it.isNotBlank() }.distinct()
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccordionPickerField(
                         value = item.name,
                         onValueChange = { inputName ->
-                            val preset = com.example.data.model.CabinetPresets.findPresetByName(inputName)
-                            if (preset != null) {
+                            val foundProd = allProducts.find { it.name == inputName || it.sku == inputName }
+                            if (foundProd != null) {
                                 onUpdate(
                                     item.copy(
-                                        name = preset.name,
-                                        description = preset.defaultDimensions,
-                                        unitPrice = if (preset.defaultPrice > 0) preset.defaultPrice else item.unitPrice,
+                                        name = foundProd.name,
+                                        sku = foundProd.sku,
+                                        description = if (foundProd.description.isNotEmpty()) foundProd.description else item.description,
+                                        unitPrice = if (foundProd.price > 0) foundProd.price else item.unitPrice,
                                         categoryType = "Cabinet"
                                     )
                                 )
@@ -1595,7 +1598,7 @@ fun LineItemEditorRow(
                             }
                         },
                         label = if (isRtl) "شرح کالا" else "Item Description",
-                        placeholder = "صفحه کابینت خام",
+                        placeholder = if (isRtl) "وارد کردن شرح کالا..." else "Enter item description...",
                         options = cabinetOptions,
                         isRtl = isRtl,
                         modifier = Modifier.weight(1.8f).testTag("line_item_cabinet_name_$index")
@@ -1605,7 +1608,7 @@ fun LineItemEditorRow(
                         value = item.description,
                         onValueChange = { dim -> onUpdate(item.copy(description = dim)) },
                         label = { Text(if (isRtl) "ابعاد" else "Dimensions", fontSize = 10.sp) },
-                        placeholder = { Text("60 x 48 x 410", fontSize = 10.sp) },
+                        placeholder = { Text(if (isRtl) "ابعاد..." else "Dimensions...", fontSize = 10.sp) },
                         singleLine = true,
                         textStyle = TextStyle(fontSize = 11.sp),
                         modifier = Modifier.weight(1.2f).testTag("line_item_cabinet_dim_$index")

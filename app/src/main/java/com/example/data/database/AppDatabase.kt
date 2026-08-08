@@ -19,7 +19,7 @@ import com.example.data.model.*
         BankAccount::class,
         Project::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
