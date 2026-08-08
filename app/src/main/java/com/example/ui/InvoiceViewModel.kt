@@ -319,12 +319,34 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
         }
     }
 
+    val cabinetDefaultTermsList = listOf(
+        "نقدی",
+        "این شرکت هیچگونه مسئولیتی در قبال روکش اچ پی ال که خریدار بر روی سطح صفحه کابینت اعمال میکند نخواهد داشت .",
+        "لطفا در انتخاب محصول و تعداد مورد نیاز دقت لازم را مبذول بفرمایید .",
+        "در صورت ارایه سفارش ، شروع تولید پس از واریزمبلغ پیش پرداخت و دریافت رسید واریز و ارائه تاییدیه مالی شرکت می باشد .",
+        "تایید پیش فاکتور و واریز پیش پرداخت به منزله قبول شرایط و خرید قطعی کالا از طرف خریدار بوده و در صورت انصراف مشتری خسارات احتمالی برآورد و دریافت می گردد .",
+        "تمامی هزینه های حمل از محل کارخانه در ابهر تا محل خریدار پروژه به عهده خریدار می باشد .",
+        "زمان تحویل کالا در صورت موجود نبودن در انبار با هماهنگی به خریدار اعلام خواهد شد .",
+        "ارسال بار منوط به تسویه حساب مالی کامل فاکتور و واریز مبلغ مورد نظر به حساب اعلام شده می باشد .",
+        "لطفا مبلغ فاکتور را به حساب شماره :\nبانک سپه - به نام محسن نیک زارع\nIR580150000188480276086691"
+    )
+
+    fun applyCabinetDefaultTerms() {
+        editorPaymentTerms = "نقدی"
+        editorShippingTerms = "پس از تسویه کامل"
+        editorNotes = cabinetDefaultTermsList.mapIndexed { i, term ->
+            "${Helper.formatDouble((i + 1).toDouble(), usePersianDigits)}- $term"
+        }.joinToString("\n")
+    }
+
     fun addLineItem(product: Product? = null) {
         if (product != null) {
             val isWoodProd = product.categoryType == "Wood" || product.categoryType == "چوب پلاست"
-            val targetUnit = if (isWoodProd) "متر طول" else (if (product.unit.isNotBlank()) product.unit else "قطعه")
+            val isCabProd = product.categoryType == "Cabinet" || product.categoryType == "کابینت"
+            val targetUnit = if (isWoodProd) "متر طول" else if (isCabProd) "عدد" else (if (product.unit.isNotBlank()) product.unit else "قطعه")
             val factor = if (product.crossSectionFactor > 0) product.crossSectionFactor else (WoodPresets.findPresetByNameOrSku(product.name)?.crossSectionFactor ?: 0.0)
             val defaultW = if (product.weight > 0) product.weight else (WoodPresets.findPresetByNameOrSku(product.name)?.defaultWeight ?: 0.0)
+            val catType = if (isWoodProd) "Wood" else if (isCabProd) "Cabinet" else "Accessory"
             editorLineItems.add(
                 InvoiceLineItem(
                     invoiceId = editorInvoiceId ?: 0,
@@ -338,7 +360,7 @@ class InvoiceViewModel(private val repository: InvoiceRepository) : ViewModel() 
                     colorCode = product.colorCode,
                     surfaceTreatment = product.surfaceTreatment,
                     branchCount = product.branchCount,
-                    categoryType = if (isWoodProd) "Wood" else "Accessory",
+                    categoryType = catType,
                     crossSectionFactor = factor,
                     initialAreaSqm = product.initialAreaSqm,
                     weight = defaultW

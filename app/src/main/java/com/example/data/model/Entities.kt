@@ -273,6 +273,28 @@ object AccessoryPresets {
     }
 }
 
+data class CabinetPreset(
+    val name: String,
+    val defaultDimensions: String,
+    val defaultPrice: Double = 0.0
+)
+
+object CabinetPresets {
+    val items = listOf(
+        CabinetPreset("صفحه کابینت خام", "60 x 48 x 410", 46000000.0),
+        CabinetPreset("صفحه کابینت روکش HPL", "60 x 48 x 410", 52000000.0),
+        CabinetPreset("صفحه کابینت دو لب گرد", "60 x 48 x 410", 48000000.0),
+        CabinetPreset("صفحه کابینت یک لب گرد", "60 x 48 x 410", 47000000.0),
+        CabinetPreset("مغزی MDF خام صفحه کابینت", "60 x 48 x 410", 40000000.0)
+    )
+
+    fun findPresetByName(query: String): CabinetPreset? {
+        if (query.isBlank()) return null
+        val trimmed = query.trim()
+        return items.find { it.name.contains(trimmed, ignoreCase = true) || trimmed.contains(it.name, ignoreCase = true) }
+    }
+}
+
 @Entity(tableName = "payments")
 data class Payment(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

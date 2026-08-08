@@ -1257,20 +1257,40 @@ fun InvoiceEditorScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(
+                        Row {
+                            TextButton(
+                                onClick = {
+                                    selectedTermsIndices.clear()
+                                    selectedTermsIndices.addAll(defaultSalesTermsList.indices)
+                                }
+                            ) {
+                                Text(if (isRtl) "انتخاب همه" else "Select All", fontSize = 11.sp)
+                            }
+                            TextButton(
+                                onClick = { selectedTermsIndices.clear() }
+                            ) {
+                                Text(if (isRtl) "عدم انتخاب" else "Deselect All", fontSize = 11.sp)
+                            }
+                        }
+                        
+                        OutlinedButton(
                             onClick = {
+                                defaultSalesTermsList.clear()
+                                defaultSalesTermsList.addAll(viewModel.cabinetDefaultTermsList)
                                 selectedTermsIndices.clear()
                                 selectedTermsIndices.addAll(defaultSalesTermsList.indices)
-                            }
+                                viewModel.editorPaymentTerms = "نقدی"
+                                viewModel.editorShippingTerms = "پس از تسویه کامل"
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text(if (isRtl) "انتخاب همه" else "Select All", fontSize = 11.sp)
-                        }
-                        TextButton(
-                            onClick = { selectedTermsIndices.clear() }
-                        ) {
-                            Text(if (isRtl) "عدم انتخاب" else "Deselect All", fontSize = 11.sp)
+                            Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (isRtl) "شرایط کابینت (PDF)" else "Cabinet Terms", fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -1386,6 +1406,7 @@ fun LineItemEditorRow(
     val isWood = item.categoryType == "Wood" || item.categoryType == "چوب پلاست"
     val isAccessory = item.categoryType == "Accessory" || item.categoryType == "پیچ و کلیپس"
     val isInstallation = item.categoryType == "Installation" || item.categoryType == "نصب"
+    val isCabinet = item.categoryType == "Cabinet" || item.categoryType == "کابینت"
 
     val allProductNames = remember(allProducts) {
         (allProducts.map { it.name } + WoodPresets.profiles.map { it.name } + AccessoryPresets.items.map { it.name }).filter { it.isNotBlank() }.distinct()
@@ -1533,9 +1554,107 @@ fun LineItemEditorRow(
                     label = { Text(if (isRtl) "نصب و اجرا" else "Installation", fontSize = 11.sp) },
                     modifier = Modifier.height(30.dp)
                 )
+                FilterChip(
+                    selected = isCabinet,
+                    onClick = {
+                        if (!isCabinet) {
+                            onUpdate(
+                                item.copy(
+                                    categoryType = "Cabinet",
+                                    unit = "عدد",
+                                    description = if (item.description.isNotEmpty()) item.description else "60 x 48 x 410",
+                                    quantity = if (item.quantity > 0) item.quantity else 1.0,
+                                    branchCount = 0.0
+                                )
+                            )
+                        }
+                    },
+                    label = { Text(if (isRtl) "کابینت" else "Cabinet", fontSize = 11.sp) },
+                    modifier = Modifier.height(30.dp)
+                )
             }
 
-            if (isInstallation) {
+            if (isCabinet) {
+                val cabinetOptions = remember { com.example.data.model.CabinetPresets.items.map { it.name } }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AccordionPickerField(
+                        value = item.name,
+                        onValueChange = { inputName ->
+                            val preset = com.example.data.model.CabinetPresets.findPresetByName(inputName)
+                            if (preset != null) {
+                                onUpdate(
+                                    item.copy(
+                                        name = preset.name,
+                                        description = preset.defaultDimensions,
+                                        unitPrice = if (preset.defaultPrice > 0) preset.defaultPrice else item.unitPrice,
+                                        categoryType = "Cabinet"
+                                    )
+                                )
+                            } else {
+                                onUpdate(item.copy(name = inputName, categoryType = "Cabinet"))
+                            }
+                        },
+                        label = if (isRtl) "شرح کالا" else "Item Description",
+                        placeholder = "صفحه کابینت خام",
+                        options = cabinetOptions,
+                        isRtl = isRtl,
+                        modifier = Modifier.weight(1.8f).testTag("line_item_cabinet_name_$index")
+                    )
+
+                    SelectOnFocusTextField(
+                        value = item.description,
+                        onValueChange = { dim -> onUpdate(item.copy(description = dim)) },
+                        label = { Text(if (isRtl) "ابعاد" else "Dimensions", fontSize = 10.sp) },
+                        placeholder = { Text("60 x 48 x 410", fontSize = 10.sp) },
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 11.sp),
+                        modifier = Modifier.weight(1.2f).testTag("line_item_cabinet_dim_$index")
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SelectOnFocusTextField(
+                        value = if (item.quantity > 0) Helper.formatDouble(item.quantity, false) else "",
+                        onValueChange = { input ->
+                            val q = input.toDoubleOrNull() ?: 0.0
+                            onUpdate(item.copy(quantity = q))
+                        },
+                        label = { Text(if (isRtl) "تعداد" else "Qty", fontSize = 10.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 11.sp),
+                        modifier = Modifier.weight(1f).testTag("line_item_cabinet_qty_$index")
+                    )
+
+                    val unitPriceStr = if (item.unitPrice > 0) Helper.formatDouble(item.unitPrice, false) else ""
+                    SelectOnFocusTextField(
+                        value = unitPriceStr,
+                        onValueChange = { input ->
+                            val clean = input.replace(",", "").replace("،", "")
+                            val priceVal = clean.toDoubleOrNull() ?: 0.0
+                            onUpdate(item.copy(unitPrice = priceVal))
+                        },
+                        label = { Text(if (isRtl) "قیمت واحد (تومان)" else "Unit Price (IRT)", fontSize = 10.sp) },
+                        supportingText = {
+                            if (item.unitPrice > 0) {
+                                Text(
+                                    text = Helper.formatCurrency(item.unitPrice, "تومان", isRtl),
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        textStyle = TextStyle(fontSize = 11.sp),
+                        modifier = Modifier.weight(1.5f).testTag("line_item_cabinet_price_$index")
+                    )
+                }
+            } else if (isInstallation) {
                 // --- Installation / Execution Category Fields ---
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccordionPickerField(

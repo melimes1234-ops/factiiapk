@@ -1498,11 +1498,12 @@ fun getNestInvoiceHtmlContent(
 
     val toRial = 10.0 // Toman to Rial conversion
 
-    // Group items into Wood (چوب پلاست), Accessories (پیچ و کلیپس) and Installation (نصب)
-    val woodItems = items.filter { it.categoryType == "Wood" || it.categoryType == "چوب پلاست" || it.categoryType.isEmpty() }
+    // Group items into Wood (چوب پلاست), Accessories (پیچ و کلیپس), Installation (نصب), and Cabinet (کابینت)
+    val woodItems = items.filter { (it.categoryType == "Wood" || it.categoryType == "چوب پلاست" || it.categoryType.isEmpty()) && it.categoryType != "Cabinet" && it.categoryType != "کابینت" }
     val accessoryItems = items.filter { it.categoryType == "Accessory" || it.categoryType == "پیچ و کلیپس" }
     val installationItems = items.filter { it.categoryType == "Installation" || it.categoryType == "نصب" }
-    val isInstInvoice = invoice.invoiceType.contains("نصب") || invoice.invoiceType.contains("اجرا") || (installationItems.isNotEmpty() && woodItems.isEmpty() && accessoryItems.isEmpty())
+    val cabinetItems = items.filter { it.categoryType == "Cabinet" || it.categoryType == "کابینت" }
+    val isInstInvoice = invoice.invoiceType.contains("نصب") || invoice.invoiceType.contains("اجرا") || (installationItems.isNotEmpty() && woodItems.isEmpty() && accessoryItems.isEmpty() && cabinetItems.isEmpty())
 
     val hasTax = invoice.taxRate > 0.0
     val taxRateFactor = if (hasTax) 0.07 else 0.0
@@ -1690,6 +1691,54 @@ fun getNestInvoiceHtmlContent(
         instTrs += sbRow.toString()
     }
 
+    // Cabinet Items Calculations
+    var totalCabQty = 0.0
+    var totalCabPriceRial = 0.0
+    var totalCabPayableRial = 0.0
+    var totalCabTaxRial = 0.0
+    var totalCabVatRial = 0.0
+    var totalCabGrandRial = 0.0
+
+    var cabTrs = ""
+    val cabStartIdx = woodItems.size + accessoryItems.size + installationItems.size + 1
+    for ((idx, item) in cabinetItems.withIndex()) {
+        val qty = item.quantity
+        val unitPriceRial = item.unitPrice * toRial
+        val totalRial = qty * unitPriceRial
+        val discPercent = item.discountPercent
+        val payableRial = totalRial * (1.0 - discPercent / 100.0)
+        val itemTaxRateFactor = if (hasTax) 0.06 else (if (item.taxPercent > 0) item.taxPercent * 0.6 / 100.0 else 0.0)
+        val itemVatRateFactor = if (hasTax) 0.03 else (if (item.taxPercent > 0) item.taxPercent * 0.3 / 100.0 else 0.0)
+        val taxRial = payableRial * itemTaxRateFactor
+        val vatRial = payableRial * itemVatRateFactor
+        val grandRial = payableRial + taxRial + vatRial
+
+        totalCabQty += qty
+        totalCabPriceRial += totalRial
+        totalCabPayableRial += payableRial
+        totalCabTaxRial += taxRial
+        totalCabVatRial += vatRial
+        totalCabGrandRial += grandRial
+
+        val dimStr = if (item.description.isNotBlank()) item.description else (if (item.sku.isNotBlank()) item.sku else "---")
+
+        cabTrs += """
+            <tr>
+                <td class="text-center">${formatNum((cabStartIdx + idx).toDouble())}</td>
+                <td class="bold text-center">${item.name}</td>
+                <td class="text-center bold">${dimStr}</td>
+                <td class="text-center bold">${formatNum(qty)}</td>
+                <td class="text-center">${formatNum(unitPriceRial)}</td>
+                <td class="text-center">${formatNum(totalRial)}</td>
+                <td class="text-center">${if (discPercent > 0) formatNum(discPercent) else "۰"}</td>
+                <td class="text-center bold">${formatNum(payableRial)}</td>
+                <td class="text-center">${formatNum(taxRial)}</td>
+                <td class="text-center">${formatNum(vatRial)}</td>
+                <td class="text-center bold">${formatNum(grandRial)}</td>
+            </tr>
+        """
+    }
+
     val instFooterColSpan = 3 + (if (hasInstColor) 1 else 0) + (if (hasInstSurface) 1 else 0)
     val instFooterTrailingColSpan = (if (hasInstDays) 1 else 0) + (if (hasInstTeam) 1 else 0) + (if (hasInstAccommodation) 1 else 0) + (if (hasInstTransport) 1 else 0) + (if (hasInstConsumables) 1 else 0)
     val trailingTd = if (instFooterTrailingColSpan > 0) """<td colspan="$instFooterTrailingColSpan">---</td>""" else ""
@@ -1699,12 +1748,25 @@ fun getNestInvoiceHtmlContent(
     val totalAccWeight = accessoryItems.sumOf { it.quantity * it.weight }
     val totalInvoiceWeight = totalWoodWeight + totalAccWeight
 
-    val grandTotalWoodAndClips = totalWoodGrandRial + totalAccGrandRial + totalInstGrandRial
-    val totalTaxAndVat = (totalWoodTaxRial + totalWoodVatRial) + (totalAccTaxRial + totalAccVatRial) + (totalInstTaxRial + totalInstVatRial)
-    val totalDiscountRial = (totalWoodPriceRial - totalWoodPayableRial) + (totalAccPriceRial - totalAccPayableRial) + (totalInstPriceRial - totalInstPayableRial) + (invoice.discountAmount * toRial)
+    val grandTotalWoodAndClips = totalWoodGrandRial + totalAccGrandRial + totalInstGrandRial + totalCabGrandRial
+    val totalTaxAndVat = (totalWoodTaxRial + totalWoodVatRial) + (totalAccTaxRial + totalAccVatRial) + (totalInstTaxRial + totalInstVatRial) + (totalCabTaxRial + totalCabVatRial)
+    val totalDiscountRial = (totalWoodPriceRial - totalWoodPayableRial) + (totalAccPriceRial - totalAccPayableRial) + (totalInstPriceRial - totalInstPayableRial) + (totalCabPriceRial - totalCabPayableRial) + (invoice.discountAmount * toRial)
+
+    val defaultCabinetTerms = listOf(
+        "نقدی",
+        "این شرکت هیچگونه مسئولیتی در قبال روکش اچ پی ال که خریدار بر روی سطح صفحه کابینت اعمال میکند نخواهد داشت .",
+        "لطفا در انتخاب محصول و تعداد مورد نیاز دقت لازم را مبذول بفرمایید .",
+        "در صورت ارایه سفارش ، شروع تولید پس از واریزمبلغ پیش پرداخت و دریافت رسید واریز و ارائه تاییدیه مالی شرکت می باشد .",
+        "تایید پیش فاکتور و واریز پیش پرداخت به منزله قبول شرایط و خرید قطعی کالا از طرف خریدار بوده و در صورت انصراف مشتری خسارات احتمالی برآورد و دریافت می گردد .",
+        "تمامی هزینه های حمل از محل کارخانه در ابهر تا محل خریدار پروژه به عهده خریدار می باشد .",
+        "زمان تحویل کالا در صورت موجود نبودن در انبار با هماهنگی به خریدار اعلام خواهد شد .",
+        "ارسال بار منوط به تسویه حساب مالی کامل فاکتور و واریز مبلغ مورد نظر به حساب اعلام شده می باشد ."
+    )
 
     val termsList = if (invoice.notes.isNotBlank()) {
         invoice.notes.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+    } else if (cabinetItems.isNotEmpty()) {
+        defaultCabinetTerms
     } else {
         listOf(
             "۵۰ درصد مبلغ کل در ابتدا و مابقی قبل از خروج سفارش از کارخانه دریافت می‌گردد.",
@@ -1955,24 +2017,66 @@ fun getNestInvoiceHtmlContent(
             </table>
             """ else ""}
 
+            <!-- Table 4: Cabinet Items (صفحه کابینت) -->
+            ${if (cabinetItems.isNotEmpty()) """
+            <table>
+                <thead>
+                    <tr class="bg-gray text-center bold">
+                        <th style="width:4%;">ردیف</th>
+                        <th style="width:25%;">شرح کالا</th>
+                        <th style="width:15%;">ابعاد</th>
+                        <th style="width:6%;">تعداد</th>
+                        <th style="width:11%;">قیمت واحد (ریال)</th>
+                        <th style="width:11%;">جمع (ریال)</th>
+                        <th style="width:5%;">تخفیف٪</th>
+                        <th style="width:11%;">قابل پرداخت (ریال)</th>
+                        <th style="width:5%;">مالیات٪۶</th>
+                        <th style="width:4%;">عوارض٪۳</th>
+                        <th style="width:13%;">جمع کل با ارزش افزوده (ریال)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    $cabTrs
+                </tbody>
+                <tfoot>
+                    <tr class="bg-gray bold text-center">
+                        <td colspan="3" class="text-right" style="padding-right:8px;">جمع کل (ریال) / صفحه کابینت :</td>
+                        <td>${formatNum(totalCabQty)}</td>
+                        <td colspan="2">${formatNum(totalCabPriceRial)}</td>
+                        <td>---</td>
+                        <td>${formatNum(totalCabPayableRial)}</td>
+                        <td>${formatNum(totalCabTaxRial)}</td>
+                        <td>${formatNum(totalCabVatRial)}</td>
+                        <td style="font-size: 10px;">${formatNum(totalCabGrandRial)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+            """ else ""}
+
             <!-- Calculation Totals Box (Rows 26-29) -->
             <table style="margin-top: 3px;">
-                ${if (woodItems.isNotEmpty() && (accessoryItems.isNotEmpty() || installationItems.isNotEmpty())) """
+                ${if (woodItems.isNotEmpty() && (accessoryItems.isNotEmpty() || installationItems.isNotEmpty() || cabinetItems.isNotEmpty())) """
                 <tr>
                     <td class="bold" style="width:70%;">جمع کل خرید چوب پلاست ( ریال ) :</td>
                     <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalWoodGrandRial)}</td>
                 </tr>
                 """ else ""}
-                ${if (accessoryItems.isNotEmpty() && (woodItems.isNotEmpty() || installationItems.isNotEmpty())) """
+                ${if (accessoryItems.isNotEmpty() && (woodItems.isNotEmpty() || installationItems.isNotEmpty() || cabinetItems.isNotEmpty())) """
                 <tr>
                     <td class="bold" style="width:70%;">جمع کل خرید پیچ و کلیپس ( ریال ) :</td>
                     <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalAccGrandRial)}</td>
                 </tr>
                 """ else ""}
-                ${if (installationItems.isNotEmpty() && (woodItems.isNotEmpty() || accessoryItems.isNotEmpty())) """
+                ${if (installationItems.isNotEmpty() && (woodItems.isNotEmpty() || accessoryItems.isNotEmpty() || cabinetItems.isNotEmpty())) """
                 <tr>
                     <td class="bold" style="width:70%;">جمع کل خدمات نصب و اجرا ( ریال ) :</td>
                     <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalInstGrandRial)}</td>
+                </tr>
+                """ else ""}
+                ${if (cabinetItems.isNotEmpty() && (woodItems.isNotEmpty() || accessoryItems.isNotEmpty() || installationItems.isNotEmpty())) """
+                <tr>
+                    <td class="bold" style="width:70%;">جمع کل خرید صفحه کابینت ( ریال ) :</td>
+                    <td class="bold text-center" style="width:30%; font-size: 10.5px;">${formatNum(totalCabGrandRial)}</td>
                 </tr>
                 """ else ""}
                 <tr>
@@ -1992,12 +2096,14 @@ fun getNestInvoiceHtmlContent(
                 <tr class="bg-gray">
                     <td class="bold" style="font-size: 10.5px;">${
                         when {
+                            cabinetItems.isNotEmpty() && woodItems.isEmpty() && accessoryItems.isEmpty() && installationItems.isEmpty() -> "جمع کل فاکتور صفحه کابینت ( ریال ) :"
                             woodItems.isNotEmpty() && accessoryItems.isNotEmpty() && installationItems.isNotEmpty() -> "جمع کل فاکتور ( چوب پلاست ، پیچ ، کلیپس و نصب ) ( ریال ) :"
                             woodItems.isNotEmpty() && accessoryItems.isNotEmpty() -> "جمع کل خرید چوب پلاست ، پیچ و کلیپس ( ریال ) :"
                             installationItems.isNotEmpty() && (woodItems.isNotEmpty() || accessoryItems.isNotEmpty()) -> "جمع کل فاکتور ( کالا و خدمات نصب ) ( ریال ) :"
                             installationItems.isNotEmpty() -> "جمع کل خدمات نصب و اجرا ( ریال ) :"
                             woodItems.isNotEmpty() -> "جمع کل خرید چوب پلاست ( ریال ) :"
                             accessoryItems.isNotEmpty() -> "جمع کل خرید پیچ و کلیپس ( ریال ) :"
+                            cabinetItems.isNotEmpty() -> "جمع کل فاکتور ( شامل صفحه کابینت ) ( ریال ) :"
                             else -> "جمع کل فاکتور ( ریال ) :"
                         }
                     }</td>
@@ -2067,11 +2173,13 @@ fun getNestInvoiceHtmlContent(
                         توضیحات : اعتبار این فاکتور از تاریخ صدور فقط ۲۴ ساعت می باشد .
                     </td>
                 </tr>
+                ${if (woodItems.isNotEmpty() || accessoryItems.isNotEmpty() || installationItems.isNotEmpty()) """
                 <tr class="bg-gray">
                     <td colspan="2" class="text-center bold" style="padding: 5px; font-size: 9.5px;">
                         محصولات نست صرفا در صورت نصب توسط تیم های اجرایی دارای گواهینامه از این شرکت و استفاده از کلیپس های مخصوص این شرکت، شامل دو سال گارانتی خواهد شد
                     </td>
                 </tr>
+                """ else ""}
             </table>
         </body>
         </html>
